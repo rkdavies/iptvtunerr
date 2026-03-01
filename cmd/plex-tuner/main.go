@@ -819,7 +819,10 @@ func main() {
 					GuideName:   ch.GuideName,
 				}
 			}
-			if plexHost != "" && plexToken != "" {
+			if len(live) == 0 {
+				log.Printf("[PLEX-REG] Skipping registration: 0 channels after filtering (no empty EPG tabs)")
+			}
+			if len(live) > 0 && plexHost != "" && plexToken != "" {
 				log.Printf("[PLEX-REG] Attempting Plex API registration...")
 				devUUID, _, regErr := plex.FullRegisterPlex(baseURL, plexHost, plexToken, cfg.FriendlyName, cfg.DeviceID, channelInfo)
 				if regErr != nil {
@@ -831,7 +834,7 @@ func main() {
 				}
 			}
 
-			if !apiRegistrationDone {
+			if !apiRegistrationDone && len(live) > 0 {
 				if *runRegisterPlex == "api" {
 					// "api" is a mode selector, not a filesystem path. If API registration
 					// failed above, skip the file-based fallback to avoid constructing the

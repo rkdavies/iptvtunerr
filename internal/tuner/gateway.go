@@ -1585,6 +1585,17 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		bufferSize := g.effectiveBufferSize(false)
+		ct := resp.Header.Get("Content-Type")
+		isMPEGTS := strings.Contains(ct, "video/mp2t") ||
+			strings.HasSuffix(strings.ToLower(streamURL), ".ts")
+		if isMPEGTS {
+			if ffmpegPath, ffmpegErr := resolveFFmpegPath(); ffmpegErr == nil {
+				if g.relayRawTSWithFFmpeg(w, r, ffmpegPath, resp.Body, channel.GuideName, channelID, resp.StatusCode, start, bufferSize) {
+					return
+				}
+				log.Printf("gateway: channel=%q id=%s ffmpeg-ts-norm failed to launch; falling back to raw proxy", channel.GuideName, channelID)
+			}
+		}
 		w.WriteHeader(resp.StatusCode)
 		sw, flush := streamWriter(w, bufferSize)
 		n, _ := io.Copy(sw, resp.Body)
@@ -1595,6 +1606,57 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("gateway: channel=%q id=%s all %d upstream(s) failed dur=%s", channel.GuideName, channelID, len(urls), time.Since(start).Round(time.Millisecond))
 	http.Error(w, "All upstreams failed", http.StatusBadGateway)
+}
+
+// relayRawTSWithFFmpeg normalizes a raw MPEG-TS stream through FFmpeg to fix
+// disposition:default=0 and MPTS issues that cause Plex clients to play with no audio.
+// The upstream response headers must already be set on w before calling.
+// Returns true if FFmpeg launched and handled the response; false signals the caller
+// to fall back to a raw io.Copy proxy (resp.Body is untouched on false return).
+func (g *Gateway) relayRawTSWithFFmpeg(
+	w http.ResponseWriter,
+	r *http.Request,
+	ffmpegPath string,
+	src io.ReadCloser,
+	channelName, channelID string,
+	respStatus int,
+	start time.Time,
+	bufferBytes int,
+) bool {
+	args := []string{
+		"-hide_banner",
+		"-loglevel", "error",
+		"-fflags", "+discardcorrupt+genpts",
+		"-analyzeduration", "500000",
+		"-probesize", "500000",
+		"-f", "mpegts",
+		"-i", "pipe:0",
+		"-map", "0:v:0",
+		"-map", "0:a:0?",
+		"-c", "copy",
+		"-f", "mpegts",
+		"pipe:1",
+	}
+	cmd := exec.CommandContext(r.Context(), ffmpegPath, args...)
+	cmd.Stdin = src
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return false
+	}
+	var stderrBuf bytes.Buffer
+	cmd.Stderr = &stderrBuf
+	if err := cmd.Start(); err != nil {
+		return false
+	}
+	defer src.Close()
+	defer cmd.Wait() //nolint:errcheck
+	w.WriteHeader(respStatus)
+	sw, flush := streamWriter(w, bufferBytes)
+	n, _ := io.Copy(sw, stdout)
+	flush()
+	log.Printf("gateway: channel=%q id=%s ffmpeg-ts-norm bytes=%d dur=%s",
+		channelName, channelID, n, time.Since(start).Round(time.Millisecond))
+	return true
 }
 
 func ffmpegRelayErr(phase string, err error, stderr string) error {
