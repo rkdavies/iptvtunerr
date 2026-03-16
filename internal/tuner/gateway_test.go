@@ -266,6 +266,44 @@ func TestGateway_requestAdaptation_resolvedWebGetsWebsafe(t *testing.T) {
 	}
 }
 
+func TestGateway_requestAdaptation_internalFetcherGetsWebsafe(t *testing.T) {
+	// When Plex matches the internal fetcher (Lavf/PMS) session instead of the browser,
+	// we treat it as websafe so Chrome and other browsers still get MP3 audio.
+	pms := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/status/sessions" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/xml")
+		_, _ = w.Write([]byte(`<MediaContainer size="1"><Video title="Live TV"><Session id="sid-lavf"/><Player machineIdentifier="cid-lavf" product="Lavf" platform="Plex Media Server"/></Video></MediaContainer>`))
+	}))
+	defer pms.Close()
+
+	g := &Gateway{
+		PlexClientAdapt: true,
+		PlexPMSURL:      pms.URL,
+		PlexPMSToken:    "tok",
+		Client:          pms.Client(),
+	}
+	ch := &catalog.LiveChannel{GuideName: "Test"}
+	req := httptest.NewRequest(http.MethodGet, "http://local/stream/test", nil)
+	req.Header.Set("X-Plex-Session-Identifier", "sid-lavf")
+
+	hasOverride, transcode, profile, reason := g.requestAdaptation(context.Background(), req, ch, "test")
+	if !hasOverride {
+		t.Fatalf("expected override for internal fetcher")
+	}
+	if !transcode {
+		t.Fatalf("expected internal fetcher to get websafe transcode so browsers get audio")
+	}
+	if profile != profilePlexSafe {
+		t.Fatalf("profile=%q want %q", profile, profilePlexSafe)
+	}
+	if reason != "internal-fetcher-websafe" {
+		t.Fatalf("reason=%q want internal-fetcher-websafe", reason)
+	}
+}
+
 func TestGateway_stream_emptyBodyTriesNext(t *testing.T) {
 	// 200 with ContentLength 0 (e.g. dead CDN) should try next URL
 	empty := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

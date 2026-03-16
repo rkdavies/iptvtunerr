@@ -20,6 +20,8 @@ data:
   # Built-in Plex session reaper (optional but recommended for lingering Live TV sessions).
   # Disable by setting PLEX_TUNER_PLEX_SESSION_REAPER to "false".
   PLEX_TUNER_PMS_URL: "http://plex:32400"
+  # Strip Cloudflare CDN stream hosts so tuner never uses them (403 / unable to tune).
+  PLEX_TUNER_STRIP_STREAM_HOSTS: "cf.like-cdn.com,like-cdn.com"
   PLEX_TUNER_PLEX_SESSION_REAPER: "true"
   PLEX_TUNER_PLEX_SESSION_REAPER_POLL_S: "2"
   PLEX_TUNER_PLEX_SESSION_REAPER_IDLE_S: "15"

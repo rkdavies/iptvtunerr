@@ -231,6 +231,20 @@ Non-200 → check server logs and config (catalog loaded, base URL, port).
 3. **Endpoints 200:** discover, lineup, guide, live.m3u return 200 (see §6)
 4. **One stream test:** In Plex or `curl "$BASE/stream/0"` (or a known channel ID) — expect 200 and MPEG-TS data or HLS relay
 
+---
+
+## 10. Category DVRs empty / "no live channels available" / guides stuck updating
+
+**Symptom:** Main HDHR lineup and guide work; category tuners (bcastus, newsus, generalent, etc.) log `xmltv: external source failed (no live channels available); falling back to placeholder guide` and serve tiny placeholder guides.
+
+**Cause:** Category instances use per-category M3U files (`dvr-bcastus.m3u`, `dvr-newsus.m3u`, …) from **iptv-m3u-server**. Those files currently contain **only one stream URL per channel**, and that URL is always `cf.like-cdn.com`. PlexTuner strips CF hosts at catalog build time, so every channel is dropped → 0 channels → "no live channels available". The IPTV source does have non-CF URLs (main `live.m3u` has multiple URLs per channel); the category **split** step is emitting only one URL per channel (the CF one).
+
+**Verify:** From inside the cluster (e.g. `kubectl exec deploy/plextuner-supervisor -n plex -- sh -c 'curl -s http://iptv-m3u-server.plex.svc/dvr-bcastus.m3u | grep -E "^http" | head -20 | sed "s|.*://||;s|/.*||"'`). If you see only `cf.like-cdn.com`, the fix is upstream.
+
+**Fix (upstream, iptv-m3u-server):** When generating `dvr-*.m3u`, the split step must output **all** stream URLs for each channel (same format as `live.m3u`): one EXTINF per channel and then **all** URL lines (all CDN variants from the source). Then PlexTuner's dedupe-by-tvg-id + strip will keep channels that have at least one non-CF URL. See [memory-bank/known_issues.md](../../memory-bank/known_issues.md) (Category DVRs … 0 channels).
+
+---
+
 See also
 --------
 - [Runbooks index](index.md)

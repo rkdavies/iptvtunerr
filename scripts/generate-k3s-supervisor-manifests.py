@@ -184,6 +184,9 @@ def build_supervisor_json(
     # 5005 is reserved for WebSafe, so extra HDHR shards start at 5006.
     hdhr_extra_base_port = 5006
 
+    # Cloudflare CDN stream hosts to strip at catalog build so tuner never uses them (403 / unable to tune).
+    strip_stream_hosts = "cf.like-cdn.com,like-cdn.com"
+
     hdhr_common_env = {
         "PLEX_TUNER_HDHR_MANUFACTURER": "Silicondust",
         "PLEX_TUNER_HDHR_MODEL_NUMBER": "HDHR5-2US",
@@ -206,6 +209,7 @@ def build_supervisor_json(
         "PLEX_TUNER_GRACENOTE_DB": "/plextuner-data/gracenote.json",
         "PLEX_TUNER_IPTVORG_DB": "/plextuner-data/iptvorg.json",
         "PLEX_TUNER_DVB_DB": "/plextuner-data/dvbdb.json",
+        "PLEX_TUNER_STRIP_STREAM_HOSTS": strip_stream_hosts,
     }
 
     for shard_idx in range(n_shards):
@@ -307,6 +311,7 @@ def build_supervisor_json(
         child_env["PLEX_TUNER_XMLTV_PREFER_LANGS"] = "en,eng"
         child_env["PLEX_TUNER_XMLTV_PREFER_LATIN"] = "true"
         child_env["PLEX_TUNER_XMLTV_NON_LATIN_TITLE_FALLBACK"] = "channel"
+        child_env["PLEX_TUNER_STRIP_STREAM_HOSTS"] = "cf.like-cdn.com,like-cdn.com"
         if int(shard.get("skip", 0)) > 0:
             child_env["PLEX_TUNER_LINEUP_SKIP"] = str(int(shard["skip"]))
         if int(shard.get("take", 0)) > 0:
@@ -393,6 +398,8 @@ def build_singlepod_manifest(
                                 # Abort HLS streams immediately on CF-blocked segment fetches
                                 # instead of stalling 12s and delivering 0 bytes.
                                 {"name": "PLEX_TUNER_FETCH_CF_REJECT", "value": "true"},
+                                # Strip CF CDN stream hosts at catalog build so tuner never uses them.
+                                {"name": "PLEX_TUNER_STRIP_STREAM_HOSTS", "value": "cf.like-cdn.com,like-cdn.com"},
                             ],
                             "ports": [],
                             "volumeMounts": [

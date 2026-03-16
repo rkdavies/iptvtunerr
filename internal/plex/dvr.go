@@ -351,46 +351,65 @@ func GetChannelMap(plexHost, token, deviceUUID string, lineupIDs []string) ([]Ch
 	return channels, nil
 }
 
-func ActivateChannelsAPI(cfg PlexAPIConfig, deviceKey string, channels []ChannelMapping) (int, error) {
-	if len(channels) == 0 {
-		return 0, fmt.Errorf("no channels to activate")
-	}
+// activateChannelsBatch sends a single PUT for one batch of channels using URL query params.
+func activateChannelsBatch(cfg PlexAPIConfig, deviceKey string, batch []ChannelMapping, client *http.Client) error {
+	enabled := make([]string, 0, len(batch))
+	parts := make([]string, 0, len(batch)*2+1)
 
-	enabled := make([]string, 0, len(channels))
-	parts := make([]string, 0, len(channels)*2)
-
-	for _, ch := range channels {
+	for _, ch := range batch {
 		enabled = append(enabled, ch.DeviceIdentifier)
 		parts = append(parts, fmt.Sprintf("channelMappingByKey[%s]=%s", ch.DeviceIdentifier, url.QueryEscape(ch.ChannelKey)))
 		parts = append(parts, fmt.Sprintf("channelMapping[%s]=%s", ch.DeviceIdentifier, url.QueryEscape(ch.LineupIdentifier)))
 	}
 
-	query := "channelsEnabled=" + strings.Join(enabled, ",") + "&" + strings.Join(parts, "&")
+	qs := "channelsEnabled=" + strings.Join(enabled, ",") + "&" + strings.Join(parts, "&")
+	activateURL := fmt.Sprintf("http://%s/media/grabbers/devices/%s/channelmap?X-Plex-Token=%s&%s",
+		cfg.PlexHost, deviceKey, cfg.PlexToken, qs)
 
-	activateURL := fmt.Sprintf("http://%s/media/grabbers/devices/%s/channelmap?%s&X-Plex-Token=%s",
-		cfg.PlexHost, deviceKey, query, cfg.PlexToken)
-
-	fmt.Printf("[PLEX-REG] Activating channels: url_len=%d channels=%d\n", len(activateURL), len(channels))
+	fmt.Printf("[PLEX-REG] Activating batch: url_len=%d channels=%d\n", len(activateURL), len(batch))
 
 	req, err := http.NewRequest("PUT", activateURL, nil)
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		return 0, fmt.Errorf("activate channels request failed: %w", err)
+		return fmt.Errorf("activate channels request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
 	bodyStr := string(body)
-	if len(bodyStr) > 200 {
-		bodyStr = bodyStr[:200]
-	}
-	fmt.Printf("[PLEX-REG] Activate channels response: status=%d body=%s\n", resp.StatusCode, bodyStr)
+	fmt.Printf("[PLEX-REG] Activate batch response: status=%d body=%.200s\n", resp.StatusCode, bodyStr)
 
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("activate channels returned %d: %.200s", resp.StatusCode, bodyStr)
+	}
+	return nil
+}
+
+// ActivateChannelsAPI enables channels on a Plex DVR device by sending PUT requests with
+// URL query params. Large lineups are chunked into batches of 100 to stay under URL limits.
+func ActivateChannelsAPI(cfg PlexAPIConfig, deviceKey string, channels []ChannelMapping) (int, error) {
+	if len(channels) == 0 {
+		return 0, fmt.Errorf("no channels to activate")
+	}
+
+	const batchSize = 100
+	client := &http.Client{Timeout: 60 * time.Second}
+
+	for i := 0; i < len(channels); i += batchSize {
+		end := i + batchSize
+		if end > len(channels) {
+			end = len(channels)
+		}
+		batch := channels[i:end]
+		if err := activateChannelsBatch(cfg, deviceKey, batch, client); err != nil {
+			return i, fmt.Errorf("batch %d-%d: %w", i, end-1, err)
+		}
+	}
+	fmt.Printf("[PLEX-REG] Activated all %d channels\n", len(channels))
 	return len(channels), nil
 }
 

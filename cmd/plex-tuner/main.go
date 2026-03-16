@@ -676,10 +676,12 @@ func main() {
 		}
 
 		// 2) Health check provider unless skipped (use best ranked base when we just indexed, else first configured).
+		// When BlockCFProviders is set and no ranked base was found (runApiBase==""), all provider URLs
+		// were CF-proxied; falling back to a configured CF URL would just fail — skip the check instead.
 		var checkURL string
 		if cfg.ProviderUser != "" && cfg.ProviderPass != "" {
 			base := runApiBase
-			if base == "" {
+			if base == "" && !cfg.BlockCFProviders {
 				if baseURLs := cfg.ProviderURLs(); len(baseURLs) > 0 {
 					base = strings.TrimSuffix(baseURLs[0], "/")
 				}

@@ -105,6 +105,8 @@ Cutover mapping helper (13 injected DVRs -> single supervisor pod):
 
 The provided supervisor examples preserve the injected DVR URIs (`http://plextuner-<category>.plex.svc:5004`) by keeping per-category Services and mapping each service's port `5004` to a unique child port inside the single supervisor pod. In that layout, Plex DVR URI reinjection is usually not required for the 13 injected DVRs.
 
+**Single-pod layout (main + oracle):** The main supervisor runs all instances in one pod: main HDHR + category DVRs + oracle-cap instances (hdhrcap100…hdhrcap600). Service `plextuner-oracle-hdhr` selects `app=plextuner-supervisor` and exposes ports 5201–5206. There is no separate oracle deployment. To add oracle instances when generating a new supervisor config, append the contents of `k8s/oracle-instances.json` to the config’s `instances` array. See `k8s/plextuner-oracle-supervisor.yaml` (Service only).
+
 Important for HDHomeRun network mode in supervisor:
 
 - Only **one** child instance should enable `PLEX_TUNER_HDHR_NETWORK_MODE=true` with the default HDHR ports (`UDP/TCP 65001`)

@@ -906,6 +906,25 @@ func looksLikePlexWeb(s string) bool {
 	return strings.Contains(v, "plex web") || strings.Contains(v, "web") || strings.Contains(v, "browser") || strings.Contains(v, "firefox") || strings.Contains(v, "chrome") || strings.Contains(v, "safari")
 }
 
+// looksLikePlexInternalFetcher reports whether the resolved session is likely the server-side
+// fetcher (Lavf, segmenter, PMS) rather than an end-user client. When Plex requests our stream,
+// the matched /status/sessions entry can be that internal session; we treat it as unknown and
+// use websafe (transcode+plexsafe) so browser clients (Chrome, Firefox) get MP3 and both work.
+func looksLikePlexInternalFetcher(product, platform string) bool {
+	p := strings.ToLower(strings.TrimSpace(product))
+	pl := strings.ToLower(strings.TrimSpace(platform))
+	if strings.Contains(p, "lavf") || strings.Contains(pl, "lavf") {
+		return true
+	}
+	if strings.Contains(p, "plex media server") || strings.Contains(pl, "plex media server") {
+		return true
+	}
+	if strings.Contains(p, "segmenter") || strings.Contains(p, "ffmpeg") {
+		return true
+	}
+	return false
+}
+
 func (g *Gateway) requestAdaptation(ctx context.Context, r *http.Request, channel *catalog.LiveChannel, channelID string) (bool, bool, string, string) {
 	hints := plexRequestHints(r)
 	log.Printf("gateway: channel=%q id=%s plex-hints %s", channel.GuideName, channelID, hints.summary())
@@ -918,6 +937,11 @@ func (g *Gateway) requestAdaptation(ctx context.Context, r *http.Request, channe
 		default:
 			return true, false, explicitProfile, "query-profile"
 		}
+	}
+	// Force websafe so both Chrome and Firefox get browser-safe audio (e.g. MP3); use when
+	// client detection is wrong or after Plex/server updates change how sessions are reported.
+	if getenvBool("PLEX_TUNER_FORCE_WEBSAFE", false) {
+		return true, true, profilePlexSafe, "force-websafe"
 	}
 	if !g.PlexClientAdapt {
 		return false, false, "", "adapt-disabled"
@@ -934,6 +958,12 @@ func (g *Gateway) requestAdaptation(ctx context.Context, r *http.Request, channe
 		channel.GuideName, channelID, info.SessionIdentifier, info.ClientIdentifier, info.Product, info.Platform, info.Title)
 	if looksLikePlexWeb(info.Product) || looksLikePlexWeb(info.Platform) {
 		return true, true, profilePlexSafe, "resolved-web-client"
+	}
+	// Resolved session looks like non-web (e.g. native app), but it might be the internal
+	// fetcher (Lavf/PMS) that Plex uses to pull our stream—end viewer could still be Chrome.
+	// Use websafe so both browsers and native clients get compatible audio.
+	if looksLikePlexInternalFetcher(info.Product, info.Platform) {
+		return true, true, profilePlexSafe, "internal-fetcher-websafe"
 	}
 	return true, false, "", "resolved-nonweb-client"
 }

@@ -22,6 +22,67 @@ Append-only. One entry per completed task.
 
 ## Entries
 
+- Date: 2026-03-13
+  Title: Fix iptv-m3u-server splitter: emit all stream URLs per channel in dvr-*.m3u
+  Summary:
+    - Updated k3s/plex iptv-m3u-splitter-configmap.yaml (split-m3u.py): Channel now has urls: list[str]; parse_m3u_channels collects all URL lines after each EXTINF; dedupe_by_tvg_id merges URLs from all duplicates into the winner; write_bucket_file writes one EXTINF per channel then all URLs. So category DVR files get every CDN/host variant per channel and PlexTuner strip keeps non-CF.
+    - Applied ConfigMap and restarted deployment/iptv-m3u-server. New pod will use updated script on next fetch→split cycle. After that cycle, restart plextuner-supervisor so category instances reload catalogs.
+  Verification:
+    - ConfigMap applied; rollout restarted. Next split run will produce dvr-*.m3u with multiple URLs per channel when source has duplicate tvg-ids.
+  Notes:
+    - Implemented in sibling k3s/plex; known_issues and task_history updated in plexTuner.
+  Opportunities filed:
+    - none
+  Links:
+    - k3s/plex/iptv-m3u-splitter-configmap.yaml, memory-bank/known_issues.md (Category DVRs — fixed)
+
+- Date: 2026-03-12
+  Title: Root cause: category DVRs empty — dvr-*.m3u single-URL from iptv-m3u-server
+  Summary:
+    - Identified why bcastus, newsus, generalent (and similar category tuners) end up with 0 channels and "no live channels available": per-category M3U files (dvr-bcastus.m3u etc.) from iptv-m3u-server contain only one stream URL per channel, and that URL is always cf.like-cdn.com. PlexTuner stripStreamHosts then drops every channel. Main HDHR uses live.m3u which has multiple URLs per channel, so after dedupe+strip many channels remain.
+    - Documented root cause and required upstream fix in known_issues.md; added runbook §10 and reference docs/upstream-m3u-split-requirement.md; updated repo_map (category DVR feeds). Fix: iptv-m3u-server split step must emit all stream URLs per channel in dvr-*.m3u (same format as live.m3u).
+  Verification:
+    - Confirmed from cluster: curl dvr-bcastus.m3u → 133 channels, all URLs cf.like-cdn.com; live.m3u has multiple hosts. N/A for code (docs only).
+  Notes:
+    - Fix is in sibling k3s/plex repo (iptv-m3u-server split script), not in PlexTuner.
+  Opportunities filed:
+    - none
+  Links:
+    - memory-bank/known_issues.md, docs/runbooks/plextuner-troubleshooting.md §10, docs/reference/upstream-m3u-split-requirement.md, memory-bank/repo_map.md
+
+- Date: 2026-03-12
+  Title: Single-pod consolidation: merge oracle into main supervisor
+  Summary:
+    - Merged oracle-cap instances (hdhrcap100…hdhrcap600) into the main supervisor config so one pod runs all tuner instances (main + categories + oracle). No separate plextuner-oracle-supervisor deployment.
+    - Updated ConfigMap plextuner-supervisor-config with merged instances (28 total). Patched deployment plextuner-supervisor to expose container ports 5201–5206. Patched Service plextuner-oracle-hdhr to select app=plextuner-supervisor. Scaled deployment plextuner-oracle-supervisor to 0.
+    - Repo: k8s/plextuner-oracle-supervisor.yaml is now Service-only (selector app=plextuner-supervisor). Added k8s/oracle-instances.json with the 6 instance definitions (including PLEX_TUNER_STRIP_STREAM_HOSTS) for reference when generating merged configs. Updated repo_map, known_issues, and rollout instructions.
+  Verification:
+    - plextuner-supervisor pod Running/Ready; plextuner-oracle-hdhr endpoints point at main pod; curl from inside pod to 127.0.0.1:5201/discover.json → 200.
+  Notes:
+    - Oracle data dir was hostPath /srv/plextuner-oracle-data on the old deployment; merged pod uses the main supervisor's /data volume, so oracle instance catalogs live under /data/hdhrcap100 etc. on the same volume.
+  Opportunities filed:
+    - none
+  Links:
+    - memory-bank/repo_map.md (single-pod consolidation), k8s/oracle-instances.json, k8s/plextuner-oracle-supervisor.yaml
+
+- Date: 2026-03-12
+  Title: Restore plex.home and plextuner-hdhr.plex.home with kspls0 NotReady
+  Summary:
+    - Node kspls0 (media=plex) was NotReady (kubelet stopped posting status); Plex and plex-label-proxy pods could not schedule; plex.home returned 503; plextuner-hdhr.plex.home returned 404 (Ingress pointed at non-existent service plextuner-hdhr-test).
+    - Force-deleted Terminating pods (plex, plex-label-proxy, db-sync, threadfin, hidden-grab-recover). Removed unreachable taints from kspls0, then cordoned kspls0; labeled kspld0 with media=plex but kspld0 was at pod limit (110/110) so Plex pod still could not schedule.
+    - Applied manual Endpoints workaround: removed selector from Service `plex`, added `k8s/plex-endpoints-manual.yaml` with 192.168.50.85:32400 (Plex responding on kspls0 host). plex.home returned 200.
+    - Patched Ingress `plextuner-hdhr` to use backend service `plextuner-hdhr` instead of `plextuner-hdhr-test`. plextuner-hdhr.plex.home discover.json, lineup.json, guide.xml, and stream/0 now return 200; stream delivered ~10MB in 8s.
+  Verification:
+    - `curl -sk https://plex.home/identity` → 200
+    - `curl -s http://plextuner-hdhr.plex.home/discover.json` → 200; lineup.json and guide.xml → 200; `/stream/0` → 200 with MPEG-TS bytes
+  Notes:
+    - plex-label-proxy remains Pending (nodeSelector media=plex; kspls0 cordoned, kspld0 at pod limit). /media/providers route may not rewrite labels until that pod runs or node recovers.
+    - When kspls0 is back: uncordon kspls0, restore Service plex selector (`app=plex`), delete manual Endpoints, delete k8s/plex-endpoints-manual.yaml apply or leave file for future outages.
+  Opportunities filed:
+    - none
+  Links:
+    - memory-bank/known_issues.md (plex.home 503 workaround), k8s/plex-endpoints-manual.yaml
+
 - Date: 2026-02-25
   Title: 13-DVR pipeline end-to-end: M3U fetch → EPG prune → split → Threadfin → Plex DVR activation
   Summary:

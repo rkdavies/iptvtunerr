@@ -26,6 +26,19 @@ To push Plex Tuner to both: `git push origin main && git push plex main`. Never 
 | **`AGENTS.md`** | Agent instructions; **`memory-bank/`** = state + process. |
 | **`docs/index.md`** | Doc map (Diátaxis). |
 
+## Single binary (supervisor vs oracle)
+
+**There is only one application:** `plex-tuner` (one binary, one build). All modes are subcommands of that binary:
+
+- `run`, `serve`, `index` — single tuner or catalog refresh
+- `supervise` — read a JSON config and spawn N child processes (each child is the same binary, e.g. `plex-tuner run -addr=:5004 ...`)
+- `plex-epg-oracle` — CLI to probe Plex HDHR wizard/channelmap and write reports (one-shot or cron)
+- `probe`, `mount`, `vod-split`, `plex-vod-register`, `epg-link-report` — other subcommands
+
+**Single-pod consolidation (done):** Main and oracle instances run in **one** supervisor pod. The main supervisor config (ConfigMap `plextuner-supervisor-config`) includes both the main instances (hdhr-main, categories, …) and the oracle-cap instances (hdhrcap100…hdhrcap600). Service `plextuner-oracle-hdhr` selects `app=plextuner-supervisor` and exposes ports 5201–5206. There is no separate `plextuner-oracle-supervisor` deployment. Oracle instance definitions for merging into a generated config: `k8s/oracle-instances.json`. Windows/macOS: one `go build`; no extra binaries.
+
+**Category DVR feeds (dvr-*.m3u):** Category instances (bcastus, newsus, generalent, …) use M3U URLs like `http://iptv-m3u-server.plex.svc/dvr-bcastus.m3u`. Those files are produced by **iptv-m3u-server** (split step) in the sibling `k3s/plex` repo. They must emit **all** stream URLs per channel (not just one), or after `PLEX_TUNER_STRIP_STREAM_HOSTS` every channel is dropped and guides show "no live channels available". See known_issues.md (Category DVRs … 0 channels) and runbook §10.
+
 ## Key modules
 
 - **`internal/httpclient`** — Shared tuned HTTP client; used by indexer, gateway, materializer, vodfs.

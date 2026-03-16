@@ -268,6 +268,9 @@ Use for:
 - `PLEX_TUNER_STREAM_BUFFER_BYTES` (`0|auto|<bytes>`)
 - `PLEX_TUNER_FFMPEG_PATH`
 - `PLEX_TUNER_FFMPEG_HLS_RECONNECT` (advanced ffmpeg/HLS behavior)
+- `PLEX_TUNER_CLIENT_ADAPT` — when true, resolve Plex client from session and force websafe (transcode+plexsafe) for web/browser clients and for internal fetcher (Lavf/PMS) so Chrome and Firefox both get compatible audio.
+- `PLEX_TUNER_FORCE_WEBSAFE` — when true, always transcode with plexsafe (MP3) regardless of client; use if Chrome has no audio after a Plex/server update and client detection misclassifies.
+- `PLEX_TUNER_STRIP_STREAM_HOSTS` — comma-separated hostnames (e.g. `cf.like-cdn.com,like-cdn.com`) whose stream URLs are removed at catalog build; channels with only those hosts are dropped so the tuner never uses CF-blocked endpoints.
 
 ## Guide / XMLTV
 
