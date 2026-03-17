@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/iptvtunerr/iptv-tunerr/internal/httpclient"
+	"github.com/snapetech/iptvtunerr/internal/httpclient"
 )
 
 type plexSessionReaperConfig struct {

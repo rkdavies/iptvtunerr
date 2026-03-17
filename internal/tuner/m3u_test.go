@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/iptvtunerr/iptv-tunerr/internal/catalog"
+	"github.com/snapetech/iptvtunerr/internal/catalog"
 )
 
 func TestM3UServe_urlTvg(t *testing.T) {

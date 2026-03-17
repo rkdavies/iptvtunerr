@@ -6,8 +6,8 @@ import (
 	"os"
 	"sync"
 
-	"github.com/iptvtunerr/iptv-tunerr/internal/cache"
-	"github.com/iptvtunerr/iptv-tunerr/internal/probe"
+	"github.com/snapetech/iptvtunerr/internal/cache"
+	"github.com/snapetech/iptvtunerr/internal/probe"
 )
 
 // DirectFile materializes direct-file (MP4) URLs to the cache. HLS/TS return ErrNotReady.

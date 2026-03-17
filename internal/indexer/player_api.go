@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/iptvtunerr/iptv-tunerr/internal/catalog"
-	"github.com/iptvtunerr/iptv-tunerr/internal/httpclient"
+	"github.com/snapetech/iptvtunerr/internal/catalog"
+	"github.com/snapetech/iptvtunerr/internal/httpclient"
 )
 
 // IndexFromPlayerAPI indexes live (and optionally VOD/series) from Xtream player_api.

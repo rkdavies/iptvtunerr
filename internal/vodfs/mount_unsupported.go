@@ -6,8 +6,8 @@ package vodfs
 import (
 	"fmt"
 
-	"github.com/iptvtunerr/iptv-tunerr/internal/catalog"
-	"github.com/iptvtunerr/iptv-tunerr/internal/materializer"
+	"github.com/snapetech/iptvtunerr/internal/catalog"
+	"github.com/snapetech/iptvtunerr/internal/materializer"
 )
 
 // Mount is unavailable on non-Linux builds because VODFS currently depends on go-fuse.

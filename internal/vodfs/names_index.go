@@ -6,7 +6,7 @@ package vodfs
 import (
 	"fmt"
 
-	"github.com/iptvtunerr/iptv-tunerr/internal/catalog"
+	"github.com/snapetech/iptvtunerr/internal/catalog"
 )
 
 func buildUniqueMovieDirNames(movies []catalog.Movie) map[string]string {

@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/iptvtunerr/iptv-tunerr/internal/catalog"
-	"github.com/iptvtunerr/iptv-tunerr/internal/httpclient"
-	"github.com/iptvtunerr/iptv-tunerr/internal/safeurl"
+	"github.com/snapetech/iptvtunerr/internal/catalog"
+	"github.com/snapetech/iptvtunerr/internal/httpclient"
+	"github.com/snapetech/iptvtunerr/internal/safeurl"
 )
 
 // ParseM3U fetches the M3U URL and parses it into live channels. Movies and series

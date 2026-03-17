@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/iptvtunerr/iptv-tunerr/internal/catalog"
+	"github.com/snapetech/iptvtunerr/internal/catalog"
 )
 
 // LineupItem is one channel in the HDHomeRun-style lineup.json.

@@ -1,4 +1,4 @@
-module github.com/iptvtunerr/iptv-tunerr
+module github.com/snapetech/iptvtunerr
 
 go 1.24.0
 

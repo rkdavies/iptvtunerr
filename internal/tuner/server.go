@@ -16,8 +16,8 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/iptvtunerr/iptv-tunerr/internal/catalog"
-	"github.com/iptvtunerr/iptv-tunerr/internal/httpclient"
+	"github.com/snapetech/iptvtunerr/internal/catalog"
+	"github.com/snapetech/iptvtunerr/internal/httpclient"
 )
 
 // PlexDVRMaxChannels is Plex's per-tuner channel limit when using the wizard; exceeding it causes "failed to save channel lineup".

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/iptvtunerr/iptv-tunerr/internal/catalog"
+	"github.com/snapetech/iptvtunerr/internal/catalog"
 )
 
 func TestXMLTV_serve(t *testing.T) {

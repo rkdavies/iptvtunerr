@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/iptvtunerr/iptv-tunerr/internal/emby"
+	"github.com/snapetech/iptvtunerr/internal/emby"
 )
 
 type Config struct {

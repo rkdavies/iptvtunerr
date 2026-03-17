@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/iptvtunerr/iptv-tunerr/internal/catalog"
+	"github.com/snapetech/iptvtunerr/internal/catalog"
 )
 
 // HDHR serves HDHomeRun-compatible discover, lineup_status, and lineup endpoints.

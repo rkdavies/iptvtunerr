@@ -12,8 +12,8 @@ import (
 
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
-	icache "github.com/iptvtunerr/iptv-tunerr/internal/cache"
-	"github.com/iptvtunerr/iptv-tunerr/internal/materializer"
+	icache "github.com/snapetech/iptvtunerr/internal/cache"
+	"github.com/snapetech/iptvtunerr/internal/materializer"
 )
 
 // VirtualFileNode represents a single VOD file (movie or episode).

@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/iptvtunerr/iptv-tunerr/internal/catalog"
+	"github.com/snapetech/iptvtunerr/internal/catalog"
 )
 
 func TestNormalizeName(t *testing.T) {

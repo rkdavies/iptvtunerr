@@ -3,7 +3,7 @@ package vodfs
 import (
 	"testing"
 
-	"github.com/iptvtunerr/iptv-tunerr/internal/catalog"
+	"github.com/snapetech/iptvtunerr/internal/catalog"
 )
 
 func TestBuildUniqueMovieDirNames_DedupesCollisions(t *testing.T) {

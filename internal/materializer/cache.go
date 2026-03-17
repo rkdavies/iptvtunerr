@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/iptvtunerr/iptv-tunerr/internal/cache"
-	"github.com/iptvtunerr/iptv-tunerr/internal/httpclient"
-	"github.com/iptvtunerr/iptv-tunerr/internal/probe"
+	"github.com/snapetech/iptvtunerr/internal/cache"
+	"github.com/snapetech/iptvtunerr/internal/httpclient"
+	"github.com/snapetech/iptvtunerr/internal/probe"
 )
 
 // Cache materializes both direct-MP4 and HLS URLs to the cache (DirectFile + HLS via ffmpeg).

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/iptvtunerr/iptv-tunerr/internal/catalog"
+	"github.com/snapetech/iptvtunerr/internal/catalog"
 )
 
 type XMLTVChannel struct {

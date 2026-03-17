@@ -10,8 +10,8 @@ import (
 
 	"github.com/hanwen/go-fuse/v2/fs"
 	"github.com/hanwen/go-fuse/v2/fuse"
-	"github.com/iptvtunerr/iptv-tunerr/internal/catalog"
-	"github.com/iptvtunerr/iptv-tunerr/internal/materializer"
+	"github.com/snapetech/iptvtunerr/internal/catalog"
+	"github.com/snapetech/iptvtunerr/internal/materializer"
 )
 
 // Root holds catalog snapshot and materializer; implements root of VODFS.

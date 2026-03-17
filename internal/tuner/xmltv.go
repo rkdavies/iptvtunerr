@@ -14,7 +14,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/iptvtunerr/iptv-tunerr/internal/catalog"
+	"github.com/snapetech/iptvtunerr/internal/catalog"
 )
 
 // XMLTV serves /guide.xml. By default it emits a minimal placeholder XMLTV.
