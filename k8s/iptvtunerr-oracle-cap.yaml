@@ -1,82 +1,8 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: iptvtunerr-oracle-config
-  namespace: plex
-data:
-  supervisor.json: |
-    REPLACE_WITH_k8s/iptvtunerr-supervisor-oracle.example.json
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: iptvtunerr-oracle
-  namespace: plex
-  labels:
-    app: iptvtunerr-oracle
-spec:
-  replicas: 1
-  strategy:
-    type: Recreate
-  selector:
-    matchLabels:
-      app: iptvtunerr-oracle
-  template:
-    metadata:
-      labels:
-        app: iptvtunerr-oracle
-    spec:
-      nodeSelector:
-        media: plex
-      hostNetwork: false
-      dnsPolicy: ClusterFirst
-      containers:
-        - name: iptvtunerr
-          image: iptv-tunerr:hdhr-test
-          imagePullPolicy: IfNotPresent
-          args: ["supervise", "-config", "/config/supervisor.json"]
-          env:
-            - name: TZ
-              value: America/Chicago
-            - name: IPTV_TUNERR_PMS_URL
-              value: http://plex.plex.svc:32400
-            - name: IPTV_TUNERR_PMS_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: plex-token
-                  key: token
-          ports:
-            - { name: oracle100, containerPort: 5201, protocol: TCP }
-            - { name: oracle200, containerPort: 5202, protocol: TCP }
-            - { name: oracle300, containerPort: 5203, protocol: TCP }
-            - { name: oracle400, containerPort: 5204, protocol: TCP }
-            - { name: oracle479, containerPort: 5205, protocol: TCP }
-            - { name: oracle600, containerPort: 5206, protocol: TCP }
-          volumeMounts:
-            - name: oracle-config
-              mountPath: /config
-            - name: data
-              mountPath: /data
-          readinessProbe:
-            httpGet:
-              path: /discover.json
-              port: 5201
-            initialDelaySeconds: 30
-            periodSeconds: 10
-            failureThreshold: 12
-          resources:
-            requests:
-              cpu: 250m
-              memory: 512Mi
-            limits:
-              cpu: "2"
-              memory: 2Gi
-      volumes:
-        - name: oracle-config
-          configMap:
-            name: iptvtunerr-oracle-config
-        - name: data
-          emptyDir: {}
+# Oracle-cap tuner services.
+# The oracle instances (hdhrcap100..hdhrcap600) run as child processes inside the main
+# iptvtunerr-supervisor pod — no separate deployment needed.
+# These Services expose each oracle instance's port (5201–5206) from the supervisor pod
+# under a stable DNS name so Plex can reach each tuner independently.
 ---
 apiVersion: v1
 kind: Service
@@ -85,7 +11,7 @@ metadata:
   namespace: plex
 spec:
   selector:
-    app: iptvtunerr-oracle
+    app: iptvtunerr-supervisor
   ports:
     - { name: http, port: 5004, targetPort: 5201, protocol: TCP }
 ---
@@ -96,7 +22,7 @@ metadata:
   namespace: plex
 spec:
   selector:
-    app: iptvtunerr-oracle
+    app: iptvtunerr-supervisor
   ports:
     - { name: http, port: 5004, targetPort: 5202, protocol: TCP }
 ---
@@ -107,7 +33,7 @@ metadata:
   namespace: plex
 spec:
   selector:
-    app: iptvtunerr-oracle
+    app: iptvtunerr-supervisor
   ports:
     - { name: http, port: 5004, targetPort: 5203, protocol: TCP }
 ---
@@ -118,7 +44,7 @@ metadata:
   namespace: plex
 spec:
   selector:
-    app: iptvtunerr-oracle
+    app: iptvtunerr-supervisor
   ports:
     - { name: http, port: 5004, targetPort: 5204, protocol: TCP }
 ---
@@ -129,7 +55,7 @@ metadata:
   namespace: plex
 spec:
   selector:
-    app: iptvtunerr-oracle
+    app: iptvtunerr-supervisor
   ports:
     - { name: http, port: 5004, targetPort: 5205, protocol: TCP }
 ---
@@ -140,6 +66,6 @@ metadata:
   namespace: plex
 spec:
   selector:
-    app: iptvtunerr-oracle
+    app: iptvtunerr-supervisor
   ports:
     - { name: http, port: 5004, targetPort: 5206, protocol: TCP }
