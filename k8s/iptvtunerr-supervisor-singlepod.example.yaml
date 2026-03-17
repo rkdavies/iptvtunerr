@@ -4,6 +4,11 @@ metadata:
   name: iptvtunerr-supervisor-config
   namespace: plex
 data:
+  # Use the contents of k8s/iptvtunerr-supervisor-multi.example.json here.
+  # Emby and Jellyfin registration can be added at the top level:
+  #   "emby":    { "host": "http://emby:8096",    "token": "...", "tunerUrl": "http://iptvtunerr-hdhr.plex.svc:5004", "stateFile": "/data/emby-state.json",    "interval": "5m" }
+  #   "jellyfin": { "host": "http://jellyfin:8096", "token": "...", "tunerUrl": "http://iptvtunerr-hdhr.plex.svc:5004", "stateFile": "/data/jellyfin-state.json", "interval": "5m" }
+  # The supervisor strips IPTV_TUNERR_EMBY_* / IPTV_TUNERR_JELLYFIN_* from child envs automatically.
   supervisor.json: |
     REPLACE_WITH_k8s/iptvtunerr-supervisor-multi.example.json
 ---

@@ -2,6 +2,20 @@
   "restart": true,
   "restartDelay": "2s",
   "failFast": false,
+  "emby": {
+    "host": "http://emby:8096",
+    "token": "YOUR_EMBY_API_KEY",
+    "tunerUrl": "http://iptvtunerr-hdhr.plex.svc:5004",
+    "stateFile": "/data/emby-state.json",
+    "interval": "5m"
+  },
+  "jellyfin": {
+    "host": "http://jellyfin:8096",
+    "token": "YOUR_JELLYFIN_API_KEY",
+    "tunerUrl": "http://iptvtunerr-hdhr.plex.svc:5004",
+    "stateFile": "/data/jellyfin-state.json",
+    "interval": "5m"
+  },
   "instances": [
     {
       "name": "hdhr-main",

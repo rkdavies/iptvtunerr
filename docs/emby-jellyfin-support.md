@@ -147,9 +147,57 @@ iptv-tunerr run \
 
 ---
 
+## Supervisor-level registration (recommended)
+
+When running in supervisor mode (`iptv-tunerr supervise -config supervisor.json`), Emby and
+Jellyfin registration runs as a goroutine inside the supervisor process — no separate pod, no
+environment variable leakage to child instances. Add `"emby"` and/or `"jellyfin"` blocks to
+`supervisor.json`:
+
+```json
+{
+  "restart": true,
+  "restartDelay": "5s",
+  "emby": {
+    "host": "http://emby:8096",
+    "token": "YOUR_EMBY_API_KEY",
+    "tunerUrl": "http://iptvtunerr-supervisor.plex.svc:5004",
+    "stateFile": "/data/emby-state.json",
+    "interval": "5m"
+  },
+  "jellyfin": {
+    "host": "http://jellyfin:8096",
+    "token": "YOUR_JELLYFIN_API_KEY",
+    "tunerUrl": "http://iptvtunerr-supervisor.plex.svc:5004",
+    "stateFile": "/data/jellyfin-state.json",
+    "interval": "5m"
+  },
+  "instances": [
+    { "name": "main", "args": ["run", "-addr=:5004", "-catalog=/data/catalog.json"] }
+  ]
+}
+```
+
+Fields for each `MediaServerReg` block:
+
+| Field | Description | Default |
+|-------|-------------|---------|
+| `host` | Server base URL | falls back to `IPTV_TUNERR_{TYPE}_HOST` env var |
+| `token` | API key | falls back to `IPTV_TUNERR_{TYPE}_TOKEN` env var |
+| `tunerUrl` | Base URL the media server uses to reach iptvTunerr | (required) |
+| `stateFile` | Path to persist registration IDs across restarts | `""` (no persistence) |
+| `interval` | Watchdog check interval | `5m` |
+
+The supervisor automatically strips `IPTV_TUNERR_EMBY_*` and `IPTV_TUNERR_JELLYFIN_*` from child
+process environments so children never attempt to re-register.
+
+---
+
 ## Kubernetes
 
-See `k8s/emby-test.yaml` and `k8s/jellyfin-test.yaml` for example Deployments.
+See `k8s/emby-test.yaml` and `k8s/jellyfin-test.yaml` for standalone single-instance Deployments.
+For production, prefer the supervisor approach above — a single pod handles all tuner instances
+plus Emby/Jellyfin registration.
 
 Key environment variables to supply via ConfigMap / Secret:
 - `IPTV_TUNERR_EMBY_HOST` / `IPTV_TUNERR_EMBY_TOKEN`

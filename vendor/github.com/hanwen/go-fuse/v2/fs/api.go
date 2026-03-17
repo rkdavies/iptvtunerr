@@ -9,22 +9,22 @@
 // To create a file system, you should first define types for the
 // nodes of the file system tree.
 //
-//	struct myNode {
-//	   fs.Inode
-//	}
+//		struct myNode {
+//		   fs.Inode
+//		}
 //
-//	// Node types must be InodeEmbedders
-//	var _ = (fs.InodeEmbedder)((*myNode)(nil))
+//		// Node types must be InodeEmbedders
+//		var _ = (fs.InodeEmbedder)((*myNode)(nil))
 //
-//	// Node types should implement some file system operations, eg. Lookup
-//	var _ = (fs.NodeLookuper)((*myNode)(nil))
+//		// Node types should implement some file system operations, eg. Lookup
+//		var _ = (fs.NodeLookuper)((*myNode)(nil))
 //
-//	func (n *myNode) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno) {
-//	  ops := myNode{}
-//        out.Mode = 0755
-//        out.Size = 42
-//	  return n.NewInode(ctx, &ops, fs.StableAttr{Mode: syscall.S_IFREG}), 0
-//	}
+//		func (n *myNode) Lookup(ctx context.Context, name string, out *fuse.EntryOut) (*Inode, syscall.Errno) {
+//		  ops := myNode{}
+//	       out.Mode = 0755
+//	       out.Size = 42
+//		  return n.NewInode(ctx, &ops, fs.StableAttr{Mode: syscall.S_IFREG}), 0
+//		}
 //
 // The method names are inspired on the system call names, so we have
 // Listxattr rather than ListXAttr.

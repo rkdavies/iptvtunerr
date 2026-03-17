@@ -67,7 +67,7 @@ func TestMergedEnvStripsParentPlexReaperEnvForChildren(t *testing.T) {
 	}
 	out := mergedEnv(base, map[string]string{
 		"IPTV_TUNERR_BASE_URL": "http://child:5004",
-		"TZ":                  "America/Regina",
+		"TZ":                   "America/Regina",
 	})
 	got := map[string]string{}
 	for _, kv := range out {

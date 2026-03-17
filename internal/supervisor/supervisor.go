@@ -42,9 +42,9 @@ type MediaServerReg struct {
 	// (or JELLYFIN equivalents) from the process environment.
 	Host      string `json:"host"`
 	Token     string `json:"token"`
-	TunerURL  string `json:"tunerUrl"`   // base URL for the tuner this registration points at
-	StateFile string `json:"stateFile"`  // path for atomic registration state (prevents duplicates)
-	Interval  string `json:"interval"`   // watchdog interval, e.g. "5m" (default: 5m)
+	TunerURL  string `json:"tunerUrl"`  // base URL for the tuner this registration points at
+	StateFile string `json:"stateFile"` // path for atomic registration state (prevents duplicates)
+	Interval  string `json:"interval"`  // watchdog interval, e.g. "5m" (default: 5m)
 }
 
 type Instance struct {
