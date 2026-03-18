@@ -766,6 +766,7 @@ func (s *Server) Run(ctx context.Context) error {
 	mux.Handle("/stream/", gateway)
 	mux.Handle("/healthz", s.serveHealth())
 	mux.Handle("/channels/report.json", s.serveChannelReport())
+	mux.Handle("/plex/ghost-report.json", s.serveGhostHunterReport())
 
 	srv := &http.Server{Addr: addr, Handler: logRequests(mux)}
 
@@ -870,6 +871,34 @@ func (s *Server) serveChannelReport() http.Handler {
 		body, err := json.MarshalIndent(rep, "", "  ")
 		if err != nil {
 			http.Error(w, `{"error":"encode channel report"}`, http.StatusInternalServerError)
+			return
+		}
+		_, _ = w.Write(body)
+	})
+}
+
+func (s *Server) serveGhostHunterReport() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		cfg := NewGhostHunterConfigFromEnv()
+		if raw := strings.TrimSpace(r.URL.Query().Get("observe")); raw != "" {
+			if d, err := time.ParseDuration(raw); err == nil {
+				cfg.ObserveWindow = d
+			}
+		}
+		if raw := strings.TrimSpace(r.URL.Query().Get("poll")); raw != "" {
+			if d, err := time.ParseDuration(raw); err == nil {
+				cfg.PollInterval = d
+			}
+		}
+		rep, err := RunGhostHunter(r.Context(), cfg, false, nil)
+		if err != nil {
+			http.Error(w, `{"error":"ghost hunter failed"}`, http.StatusBadGateway)
+			return
+		}
+		body, err := json.MarshalIndent(rep, "", "  ")
+		if err != nil {
+			http.Error(w, `{"error":"encode ghost report"}`, http.StatusInternalServerError)
 			return
 		}
 		_, _ = w.Write(body)

@@ -631,6 +631,15 @@ func main() {
 	channelReportAliases := channelReportCmd.String("aliases", "", "Optional alias override JSON (name_to_xmltv_id map)")
 	channelReportOut := channelReportCmd.String("out", "", "Optional JSON report output path (default: stdout)")
 
+	ghostHunterCmd := flag.NewFlagSet("ghost-hunter", flag.ExitOnError)
+	ghostHunterPMSURL := ghostHunterCmd.String("pms-url", strings.TrimSpace(os.Getenv("IPTV_TUNERR_PMS_URL")), "Plex base URL")
+	ghostHunterToken := ghostHunterCmd.String("token", strings.TrimSpace(os.Getenv("IPTV_TUNERR_PMS_TOKEN")), "Plex token")
+	ghostHunterObserve := ghostHunterCmd.Duration("observe", 4*time.Second, "Observation window before classifying stale sessions")
+	ghostHunterPoll := ghostHunterCmd.Duration("poll", time.Second, "Poll interval while observing")
+	ghostHunterStop := ghostHunterCmd.Bool("stop", false, "Stop stale visible transcode sessions after classification")
+	ghostHunterMachineID := ghostHunterCmd.String("machine-id", strings.TrimSpace(os.Getenv("IPTV_TUNERR_PLEX_SESSION_REAPER_MACHINE_ID")), "Optional client machineIdentifier scope")
+	ghostHunterPlayerIP := ghostHunterCmd.String("player-ip", strings.TrimSpace(os.Getenv("IPTV_TUNERR_PLEX_SESSION_REAPER_PLAYER_IP")), "Optional player IP scope")
+
 	if len(os.Args) < 2 {
 		fmt.Fprintf(os.Stderr, "iptv-tunerr %s — live TV streaming + XMLTV guide for Plex, Emby, Jellyfin\n\n", Version)
 		fmt.Fprintf(os.Stderr, "Streaming: HDHomeRun-compatible tuner endpoints backed by M3U/Xtream with optional transcode.\n")
@@ -644,6 +653,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "  supervise  Run multiple child tuner+guide instances from one JSON config (multi-DVR)\n\n")
 		fmt.Fprintf(os.Stderr, "Guide/EPG:\n")
 		fmt.Fprintf(os.Stderr, "  channel-report   Channel intelligence report: score stream resilience + guide confidence\n")
+		fmt.Fprintf(os.Stderr, "  ghost-hunter    Observe Plex Live TV sessions, classify stalls, optionally stop stale ones\n")
 		fmt.Fprintf(os.Stderr, "  epg-link-report  Coverage report: which channels are EPG-linked vs unlinked, and by what match\n\n")
 		fmt.Fprintf(os.Stderr, "VOD (Linux):\n")
 		fmt.Fprintf(os.Stderr, "  mount            Mount VOD catalog as a browsable filesystem (FUSE)\n")
@@ -1727,6 +1737,23 @@ func main() {
 		} else {
 			fmt.Println(string(data))
 		}
+
+	case "ghost-hunter":
+		_ = ghostHunterCmd.Parse(os.Args[2:])
+		ghCfg := tuner.NewGhostHunterConfigFromEnv()
+		ghCfg.PMSURL = strings.TrimSpace(*ghostHunterPMSURL)
+		ghCfg.Token = strings.TrimSpace(*ghostHunterToken)
+		ghCfg.ObserveWindow = *ghostHunterObserve
+		ghCfg.PollInterval = *ghostHunterPoll
+		ghCfg.ScopeMachineID = strings.TrimSpace(*ghostHunterMachineID)
+		ghCfg.ScopePlayerIP = strings.TrimSpace(*ghostHunterPlayerIP)
+		rep, err := tuner.RunGhostHunter(context.Background(), ghCfg, *ghostHunterStop, nil)
+		if err != nil {
+			log.Printf("Ghost Hunter failed: %v", err)
+			os.Exit(1)
+		}
+		data, _ := json.MarshalIndent(rep, "", "  ")
+		fmt.Println(string(data))
 
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command %q\n", os.Args[1])

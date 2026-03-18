@@ -197,6 +197,22 @@ Enable it with:
 IPTV_TUNERR_AUTOPILOT_STATE_FILE=/var/lib/iptvtunerr/autopilot.json
 ```
 
+Ghost Hunter foundation is now present too:
+- `iptv-tunerr ghost-hunter` watches Plex Live TV sessions over a short observation window
+- it classifies visible stalls using the same idle/lease heuristics as the built-in reaper
+- it can optionally stop stale visible transcode sessions
+- live server endpoint: `/plex/ghost-report.json`
+
+Examples:
+
+```bash
+iptv-tunerr ghost-hunter -observe 4s
+iptv-tunerr ghost-hunter -observe 6s -stop
+curl -s "http://127.0.0.1:5004/plex/ghost-report.json?observe=4s" | jq
+```
+
+Limit: hidden Plex grabs that do not appear in `/status/sessions` still need the existing recovery runbook or a Plex restart.
+
 You can also use that intelligence to shape lineups:
 
 ```bash

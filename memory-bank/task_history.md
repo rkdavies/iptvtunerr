@@ -27,16 +27,16 @@ Append-only. One entry per completed task.
   Summary:
     - Added a new channel intelligence foundation: `iptv-tunerr channel-report` and `/channels/report.json` now score channels by guide confidence, stream resilience, and actionable next steps.
     - Wired optional XMLTV enrichment into the report so operators can see whether guide success comes from exact `tvg-id` matches, alias overrides, normalized-name repairs, or no deterministic match at all.
-    - Added early intelligence-driven lineup recipes (`high_confidence`, `balanced`, `guide_first`, `resilient`), a persisted Channel DNA foundation (`dna_id`), and an Autopilot decision-memory foundation (`IPTV_TUNERR_AUTOPILOT_STATE_FILE`) so successful playback choices can be reused by channel identity and client class.
+    - Added early intelligence-driven lineup recipes (`high_confidence`, `balanced`, `guide_first`, `resilient`), a persisted Channel DNA foundation (`dna_id`), an Autopilot decision-memory foundation (`IPTV_TUNERR_AUTOPILOT_STATE_FILE`), and a Ghost Hunter visible-session foundation (`ghost-hunter`, `/plex/ghost-report.json`).
   Verification:
     - `./scripts/verify`
     - `go test ./internal/channelreport ./internal/tuner ./cmd/iptv-tunerr`
   Notes:
-    - This is still a foundation slice only. Ghost Hunter, catch-up capsules, provider behavior profiles, and a fuller cross-provider Channel DNA graph remain explicitly planned multi-PR work.
+    - This is still a foundation slice only. Catch-up capsules, provider behavior profiles, hidden-grab Ghost Hunter automation, and a fuller cross-provider Channel DNA graph remain explicitly planned multi-PR work.
   Opportunities filed:
     - none
   Links:
-    - internal/channelreport/report.go, internal/tuner/autopilot.go, internal/tuner/server.go, cmd/iptv-tunerr/main.go, docs/epics/EPIC-live-tv-intelligence.md, README.md
+    - internal/channelreport/report.go, internal/tuner/autopilot.go, internal/tuner/ghost_hunter.go, internal/tuner/server.go, cmd/iptv-tunerr/main.go, docs/epics/EPIC-live-tv-intelligence.md, README.md
 
 - Date: 2026-03-18
   Title: Expand Docker image matrix to linux armv7

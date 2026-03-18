@@ -203,6 +203,29 @@ Notes:
 - each reported channel now includes a persisted `dna_id`
 - the current Channel DNA foundation prefers real/repaired `TVGID`, then falls back to normalized channel identity inputs
 
+## `iptv-tunerr ghost-hunter`
+
+Observe Plex Live TV sessions over a short window, classify visible stalls with the same idle/lease heuristics as the built-in reaper, and optionally stop stale visible transcode sessions.
+
+Common flags:
+- `-pms-url`
+- `-token`
+- `-observe`
+- `-poll`
+- `-stop`
+- `-machine-id`
+- `-player-ip`
+
+Live endpoint:
+- `GET /plex/ghost-report.json`
+
+Query params:
+- `observe=4s`
+- `poll=1s`
+
+Limit:
+- hidden Plex grabs that never appear in `/status/sessions` are not visible to Ghost Hunter; use the recovery runbook for those cases.
+
 ## `iptv-tunerr probe`
 
 Probe provider URLs and print ranked results (best host first).

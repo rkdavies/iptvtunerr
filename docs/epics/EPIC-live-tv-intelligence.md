@@ -72,9 +72,11 @@ Make IPTV Tunerr feel less like a tuner bridge and more like a live-TV intellige
   - early lineup recipes driven by channel intelligence scores (`high_confidence`, `balanced`, `guide_first`, `resilient`)
   - Channel DNA foundation: persisted `dna_id` derived from repaired `TVGID` or normalized channel identity inputs
   - `INT-005` Autopilot memory foundation: optional JSON-backed remembered decisions keyed by `dna_id + client_class`, with successful stream choices reused before generic client adaptation
+  - Ghost Hunter foundation: `ghost-hunter` CLI and `/plex/ghost-report.json` for visible-session stall reporting and optional stop actions
 - Next recommended slices:
   - persist richer match provenance and long-lived cross-provider relationships into a fuller Channel DNA store
   - expand Autopilot from profile/transcode memory into fallback URL/provider selection and hot-start behavior
+  - extend Ghost Hunter beyond visible sessions by tying in hidden-grab operational recovery signals
 
 See also
 --------
