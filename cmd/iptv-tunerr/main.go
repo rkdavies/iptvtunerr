@@ -631,6 +631,10 @@ func main() {
 	channelReportAliases := channelReportCmd.String("aliases", "", "Optional alias override JSON (name_to_xmltv_id map)")
 	channelReportOut := channelReportCmd.String("out", "", "Optional JSON report output path (default: stdout)")
 
+	channelDNAReportCmd := flag.NewFlagSet("channel-dna-report", flag.ExitOnError)
+	channelDNAReportCatalog := channelDNAReportCmd.String("catalog", "", "Input catalog.json (default: IPTV_TUNERR_CATALOG)")
+	channelDNAReportOut := channelDNAReportCmd.String("out", "", "Optional JSON report output path (default: stdout)")
+
 	ghostHunterCmd := flag.NewFlagSet("ghost-hunter", flag.ExitOnError)
 	ghostHunterPMSURL := ghostHunterCmd.String("pms-url", strings.TrimSpace(os.Getenv("IPTV_TUNERR_PMS_URL")), "Plex base URL")
 	ghostHunterToken := ghostHunterCmd.String("token", strings.TrimSpace(os.Getenv("IPTV_TUNERR_PMS_TOKEN")), "Plex token")
@@ -661,6 +665,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "  supervise  Run multiple child tuner+guide instances from one JSON config (multi-DVR)\n\n")
 		fmt.Fprintf(os.Stderr, "Guide/EPG:\n")
 		fmt.Fprintf(os.Stderr, "  channel-report   Channel intelligence report: score stream resilience + guide confidence\n")
+		fmt.Fprintf(os.Stderr, "  channel-dna-report  Group live channels by stable dna_id identity\n")
 		fmt.Fprintf(os.Stderr, "  ghost-hunter    Observe Plex Live TV sessions, classify stalls, optionally stop stale ones\n")
 		fmt.Fprintf(os.Stderr, "  catchup-capsules Export near-live capsule candidates from guide XML/guide.xml\n")
 		fmt.Fprintf(os.Stderr, "  epg-link-report  Coverage report: which channels are EPG-linked vs unlinked, and by what match\n\n")
@@ -1743,6 +1748,29 @@ func main() {
 				os.Exit(1)
 			}
 			log.Printf("Wrote channel report: %s", p)
+		} else {
+			fmt.Println(string(data))
+		}
+
+	case "channel-dna-report":
+		_ = channelDNAReportCmd.Parse(os.Args[2:])
+		path := strings.TrimSpace(*channelDNAReportCatalog)
+		if path == "" {
+			path = cfg.CatalogPath
+		}
+		c := catalog.New()
+		if err := c.Load(path); err != nil {
+			log.Printf("Load catalog %s: %v", path, err)
+			os.Exit(1)
+		}
+		rep := channeldna.BuildReport(c.SnapshotLive())
+		data, _ := json.MarshalIndent(rep, "", "  ")
+		if p := strings.TrimSpace(*channelDNAReportOut); p != "" {
+			if err := os.WriteFile(p, data, 0o600); err != nil {
+				log.Printf("Write channel DNA report %s: %v", p, err)
+				os.Exit(1)
+			}
+			log.Printf("Wrote channel DNA report: %s", p)
 		} else {
 			fmt.Println(string(data))
 		}

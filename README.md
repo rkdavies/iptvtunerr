@@ -183,7 +183,10 @@ Channel DNA foundation is now present too:
 - it prefers repaired/real `TVGID` when available
 - otherwise it falls back to normalized channel identity inputs
 
-That is not a full cross-provider identity graph yet, but it is the stable substrate for getting there.
+Channel DNA is now surfaced too:
+- live endpoint: `/channels/dna.json`
+- CLI export: `iptv-tunerr channel-dna-report`
+- groups channels by shared stable identity so merged providers/variants are visible as one DNA cluster
 
 Autopilot memory foundation is now present as well:
 - startup can load a JSON memory file with remembered playback decisions

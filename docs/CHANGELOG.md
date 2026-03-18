@@ -26,6 +26,7 @@ All notable changes to IPTV Tunerr are documented here. Repo: [github.com/snapet
 - **Catch-up capsule preview foundation**: added `/guide/capsules.json`, which turns real guide rows into near-live capsule candidates with lane, publish, and expiry metadata for future library publishing.
 - **Catch-up capsule export**: added `iptv-tunerr catchup-capsules` to export the capsule preview model to JSON from a catalog plus guide/XMLTV input.
 - **Catch-up capsule layout export**: `catchup-capsules -layout-dir` now writes deterministic lane-split JSON files plus `manifest.json` for downstream publisher automation.
+- **Channel DNA grouping surface**: added `/channels/dna.json` and `iptv-tunerr channel-dna-report` to group live channels by shared stable identity instead of exposing `dna_id` only as a per-row field.
 - **Product roadmap**: documented the Live TV Intelligence epic (Channel DNA, Autopilot, lineup recipes, Ghost Hunter, catch-up capsules).
 
 ---

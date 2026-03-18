@@ -17,6 +17,7 @@ import (
 	"unicode"
 
 	"github.com/snapetech/iptvtunerr/internal/catalog"
+	"github.com/snapetech/iptvtunerr/internal/channeldna"
 	"github.com/snapetech/iptvtunerr/internal/channelreport"
 	"github.com/snapetech/iptvtunerr/internal/httpclient"
 )
@@ -768,6 +769,7 @@ func (s *Server) Run(ctx context.Context) error {
 	mux.Handle("/stream/", gateway)
 	mux.Handle("/healthz", s.serveHealth())
 	mux.Handle("/channels/report.json", s.serveChannelReport())
+	mux.Handle("/channels/dna.json", s.serveChannelDNAReport())
 	mux.Handle("/plex/ghost-report.json", s.serveGhostHunterReport())
 	mux.Handle("/provider/profile.json", s.serveProviderProfile())
 
@@ -874,6 +876,18 @@ func (s *Server) serveChannelReport() http.Handler {
 		body, err := json.MarshalIndent(rep, "", "  ")
 		if err != nil {
 			http.Error(w, `{"error":"encode channel report"}`, http.StatusInternalServerError)
+			return
+		}
+		_, _ = w.Write(body)
+	})
+}
+
+func (s *Server) serveChannelDNAReport() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		body, err := json.MarshalIndent(channeldna.BuildReport(s.Channels), "", "  ")
+		if err != nil {
+			http.Error(w, `{"error":"encode dna report"}`, http.StatusInternalServerError)
 			return
 		}
 		_, _ = w.Write(body)

@@ -82,6 +82,35 @@ func TestServer_channelReport(t *testing.T) {
 	}
 }
 
+func TestServer_channelDNAReport(t *testing.T) {
+	s := &Server{LineupMaxChannels: NoLineupCap}
+	s.UpdateChannels([]catalog.LiveChannel{
+		{ChannelID: "1", GuideName: "FOX News", TVGID: "foxnews.us", DNAID: "dna-fox"},
+		{ChannelID: "2", GuideName: "FOX News HD", TVGID: "foxnews.us", DNAID: "dna-fox"},
+	})
+	req := httptest.NewRequest(http.MethodGet, "/channels/dna.json", nil)
+	w := httptest.NewRecorder()
+	s.serveChannelDNAReport().ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status=%d want 200", w.Code)
+	}
+	var body struct {
+		Groups []struct {
+			DNAID        string `json:"dna_id"`
+			ChannelCount int    `json:"channel_count"`
+		} `json:"groups"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if len(body.Groups) != 1 {
+		t.Fatalf("groups len=%d want 1", len(body.Groups))
+	}
+	if body.Groups[0].ChannelCount != 2 {
+		t.Fatalf("channel_count=%d want 2", body.Groups[0].ChannelCount)
+	}
+}
+
 func TestServer_providerProfile(t *testing.T) {
 	s := &Server{
 		gateway: &Gateway{

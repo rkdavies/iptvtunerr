@@ -203,6 +203,17 @@ Notes:
 - each reported channel now includes a persisted `dna_id`
 - the current Channel DNA foundation prefers real/repaired `TVGID`, then falls back to normalized channel identity inputs
 
+## `iptv-tunerr channel-dna-report`
+
+Export grouped live-channel identity clusters from a catalog.
+
+Common flags:
+- `-catalog`
+- `-out`
+
+Live endpoint:
+- `GET /channels/dna.json`
+
 ## `iptv-tunerr ghost-hunter`
 
 Observe Plex Live TV sessions over a short window, classify visible stalls with the same idle/lease heuristics as the built-in reaper, and optionally stop stale visible transcode sessions.
