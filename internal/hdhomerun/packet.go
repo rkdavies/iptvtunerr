@@ -248,7 +248,7 @@ func NewDiscoverRpy(deviceType, deviceID uint32, tunerCount int, baseURL, lineup
 	tlvs := []TLV{
 		{Tag: TagDeviceType, Length: 4, Value: uint32ToBytes(deviceType)},
 		{Tag: TagDeviceID, Length: 4, Value: uint32ToBytes(deviceID)},
-		{Tag: TagTunerCount, Length: 1, Value: []byte{uint8(tunerCount)}},
+		{Tag: TagTunerCount, Length: 1, Value: []byte{clampUint8(tunerCount)}},
 	}
 
 	// Add base URL if provided
@@ -340,6 +340,16 @@ func marshalGetSet(name, value string) []byte {
 	}
 
 	return MarshalTLVs(tlvs)
+}
+
+func clampUint8(v int) uint8 {
+	if v > 255 {
+		return 255
+	}
+	if v < 0 {
+		return 0
+	}
+	return uint8(v)
 }
 
 func uint32ToBytes(v uint32) []byte {
