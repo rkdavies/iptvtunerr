@@ -17,6 +17,17 @@ All notable changes to IPTV Tunerr are documented here. Repo: [github.com/snapet
 
 ---
 
+## [v0.1.8] — 2026-03-18
+
+### Build / release
+- **Expanded tagged release binaries**: GitHub Releases now publish `linux/arm/v7` and `windows/arm64` artifacts in addition to the existing `linux/amd64`, `linux/arm64`, `darwin/amd64`, `darwin/arm64`, and `windows/amd64` builds.
+- **Cleaner release pages**: release notes are generated from repo data instead of generic GitHub auto-notes. When a changelog section exists for the tag, it is used directly on the release page.
+
+### Docs
+- **Platform support alignment**: packaging and platform docs now match the actual published binary matrix so operators can see which targets are shipped on tagged releases.
+
+---
+
 ## [v0.1.2] — 2026-03-18
 
 ### Features
