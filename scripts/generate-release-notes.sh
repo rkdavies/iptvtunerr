@@ -49,6 +49,22 @@ normalize_remote_url() {
   esac
 }
 
+subject_highlight() {
+  local subject="$1"
+  subject="$(printf '%s' "$subject" | sed -E 's/^[a-z]+(\([^)]+\))?:[[:space:]]*//')"
+  printf '%s' "$subject" | awk '
+    {
+      line = $0
+      if (length(line) == 0) next
+      first = substr(line, 1, 1)
+      rest = substr(line, 2)
+      line = toupper(first) rest
+      if (line !~ /[.!?]$/) line = line "."
+      print line
+    }
+  '
+}
+
 TAG="${1:-${GITHUB_REF_NAME:-}}"
 OUT_PATH="${2:-$ROOT_DIR/dist/release-notes.md}"
 
@@ -108,7 +124,17 @@ fi
     printf '%s\n\n' "$UNRELEASED_SECTION"
     printf '_Source: `docs/CHANGELOG.md` `Unreleased` section at tag time._\n\n'
   else
-    printf 'No curated changelog entry was present for this tag, so the notes below are generated from the exact tagged commit range.\n\n'
+    if [[ -z "$COMMITS" ]]; then
+      printf '- No recorded changes found for `%s`.\n\n' "$TAG"
+    else
+      while IFS=$'\t' read -r sha subject; do
+        highlight="$(subject_highlight "$subject")"
+        if [[ -n "$highlight" ]]; then
+          printf -- '- %s\n' "$highlight"
+        fi
+      done <<<"$COMMITS"
+      printf '\n'
+    fi
   fi
 
   printf '## Included Commits\n\n'
