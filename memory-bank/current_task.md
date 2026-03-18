@@ -17,7 +17,8 @@
   3. Report summary/opportunity rollups so weak channels are actionable, not just present.
   4. Optional XMLTV-enriched provenance so tester feedback like “no tvg-id/xmltv matches” is visible as exact match vs alias/name repair vs unmatched.
   5. Intelligence-driven lineup recipes via `IPTV_TUNERR_LINEUP_RECIPE=high_confidence|balanced|guide_first|resilient`.
-  6. README/features/reference/changelog updates so this becomes part of the product story, not just an internal tool.
+  6. Channel DNA foundation via persisted `dna_id` on live channels.
+  7. README/features/reference/changelog updates so this becomes part of the product story, not just an internal tool.
 
 **Current focus shift (Docker image matrix expansion, 2026-03-18):**
 - Binary releases were expanded first, but container images were still limited to `linux/amd64` and `linux/arm64`.

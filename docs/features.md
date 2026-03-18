@@ -84,6 +84,7 @@ The guide pipeline merges three sources in priority order per channel: provider 
 | **EPG match provenance** | When an XMLTV source is supplied to the report command, channels show whether they matched by exact `tvg-id`, alias override, normalized-name repair, or not at all. |
 | **Top opportunity summary** | Report summary highlights the highest-frequency fixes across the lineup (for example missing `TVGID`, no backup streams, or alias repair candidates). |
 | **Lineup recipes** | Intelligence-driven lineup shaping with `IPTV_TUNERR_LINEUP_RECIPE=high_confidence|balanced|guide_first|resilient`. |
+| **Channel DNA foundation** | Live channels now carry a persisted `dna_id` derived from repaired `TVGID` or normalized channel identity inputs, forming the basis for future cross-provider identity stability. |
 | **Live TV intelligence roadmap** | Product roadmap documented as an epic: Channel DNA, Autopilot, lineup recipes, Ghost Hunter, and catch-up capsules. |
 
 ## 7. Lineup shaping for HDHR wizard / provider matching

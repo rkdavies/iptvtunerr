@@ -24,6 +24,9 @@ func TestBuildScoresChannelsAndSummarizesOpportunities(t *testing.T) {
 	if rep.Channels[0].Tier != TierExcellent {
 		t.Fatalf("first tier=%s want %s", rep.Channels[0].Tier, TierExcellent)
 	}
+	if rep.Channels[0].DNAID == "" {
+		t.Fatal("expected dna_id on first channel")
+	}
 	if rep.Channels[1].Tier == TierExcellent {
 		t.Fatalf("second tier unexpectedly excellent: %+v", rep.Channels[1])
 	}

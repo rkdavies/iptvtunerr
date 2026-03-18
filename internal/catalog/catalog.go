@@ -12,6 +12,7 @@ import (
 // ChannelID is a stable identifier for streaming URLs (e.g. tvg-id or provider stream_id); used in /stream/{ChannelID}.
 type LiveChannel struct {
 	ChannelID   string   `json:"channel_id"` // stable ID for /stream/{ChannelID}
+	DNAID       string   `json:"dna_id,omitempty"`
 	GuideNumber string   `json:"guide_number"`
 	GuideName   string   `json:"guide_name"`
 	StreamURL   string   `json:"stream_url"`  // primary (first working)

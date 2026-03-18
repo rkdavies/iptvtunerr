@@ -33,6 +33,7 @@ import (
 	"time"
 
 	"github.com/snapetech/iptvtunerr/internal/catalog"
+	"github.com/snapetech/iptvtunerr/internal/channeldna"
 	"github.com/snapetech/iptvtunerr/internal/channelreport"
 	"github.com/snapetech/iptvtunerr/internal/config"
 	"github.com/snapetech/iptvtunerr/internal/emby"
@@ -392,6 +393,7 @@ func fetchCatalog(cfg *config.Config, m3uOverride string) (catalogResult, error)
 	applyRuntimeEPGRepairs(cfg, res.Live, res.ProviderBase, res.ProviderUser, res.ProviderPass)
 
 	// Apply configured live-channel filters (applied consistently on every fetch path).
+	channeldna.Assign(res.Live)
 	if cfg.LiveEPGOnly {
 		filtered := make([]catalog.LiveChannel, 0, len(res.Live))
 		for _, ch := range res.Live {
@@ -720,6 +722,7 @@ func main() {
 		}
 		live := c.SnapshotLive()
 		applyRuntimeEPGRepairs(cfg, live, cfg.ProviderBaseURL, cfg.ProviderUser, cfg.ProviderPass)
+		channeldna.Assign(live)
 		log.Printf("Loaded %d live channels from %s", len(live), path)
 		serveLineupCap := cfg.LineupMaxChannels
 		if *serveMode == "easy" {
@@ -877,6 +880,7 @@ func main() {
 			firstNonEmpty(runProviderUser, cfg.ProviderUser),
 			firstNonEmpty(runProviderPass, cfg.ProviderPass),
 		)
+		channeldna.Assign(live)
 		log.Printf("Loaded %d live channels from %s", len(live), path)
 
 		baseURL := *runBaseURL
@@ -968,6 +972,7 @@ func main() {
 						continue
 					}
 					// Invariant: UpdateChannels only called after successful Save.
+					channeldna.Assign(res.Live)
 					srv.UpdateChannels(res.Live)
 					log.Printf("Catalog refreshed: %d movies, %d series, %d live channels (lineup updated)",
 						len(res.Movies), len(res.Series), len(res.Live))

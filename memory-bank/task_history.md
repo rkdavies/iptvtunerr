@@ -27,7 +27,7 @@ Append-only. One entry per completed task.
   Summary:
     - Added a new channel intelligence foundation: `iptv-tunerr channel-report` and `/channels/report.json` now score channels by guide confidence, stream resilience, and actionable next steps.
     - Wired optional XMLTV enrichment into the report so operators can see whether guide success comes from exact `tvg-id` matches, alias overrides, normalized-name repairs, or no deterministic match at all.
-    - Added early intelligence-driven lineup recipes (`high_confidence`, `balanced`, `guide_first`, `resilient`) and documented the broader product direction in `docs/epics/EPIC-live-tv-intelligence.md` so IPTV Tunerr starts behaving like a live-TV intelligence layer rather than only a tuner bridge.
+    - Added early intelligence-driven lineup recipes (`high_confidence`, `balanced`, `guide_first`, `resilient`) plus a persisted Channel DNA foundation (`dna_id`) and documented the broader product direction in `docs/epics/EPIC-live-tv-intelligence.md` so IPTV Tunerr starts behaving like a live-TV intelligence layer rather than only a tuner bridge.
   Verification:
     - `./scripts/verify`
     - `go test ./internal/channelreport ./internal/tuner ./cmd/iptv-tunerr`

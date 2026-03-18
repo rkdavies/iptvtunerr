@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/snapetech/iptvtunerr/internal/catalog"
+	"github.com/snapetech/iptvtunerr/internal/channeldna"
 	"github.com/snapetech/iptvtunerr/internal/config"
 )
 
@@ -90,5 +91,31 @@ func TestApplyRuntimeEPGRepairs_PrefersProviderBeforeExternal(t *testing.T) {
 	applyRuntimeEPGRepairs(cfg, live, providerXMLTV.URL, "u", "p")
 	if got := live[0].TVGID; got != "provider.foxnews" {
 		t.Fatalf("TVGID=%q want provider.foxnews", got)
+	}
+}
+
+func TestChannelDNAStableAfterRuntimeEPGRepair(t *testing.T) {
+	xmltv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`<?xml version="1.0"?><tv>
+<channel id="foxnews.us"><display-name>FOX News Channel</display-name></channel>
+</tv>`))
+	}))
+	defer xmltv.Close()
+
+	cfg := &config.Config{
+		XMLTVURL:         xmltv.URL,
+		XMLTVMatchEnable: true,
+	}
+	live := []catalog.LiveChannel{
+		{ChannelID: "1", GuideName: "FOX News Channel US", TVGID: "wrong.id", EPGLinked: true},
+	}
+	applyRuntimeEPGRepairs(cfg, live, "", "", "")
+	channeldna.Assign(live)
+	if live[0].DNAID == "" {
+		t.Fatal("DNAID should be assigned")
+	}
+	other := catalog.LiveChannel{GuideName: "FOX News HD", TVGID: "foxnews.us", EPGLinked: true}
+	if live[0].DNAID != channeldna.Compute(other) {
+		t.Fatalf("DNAID=%q want stable match for repaired tvgid", live[0].DNAID)
 	}
 }

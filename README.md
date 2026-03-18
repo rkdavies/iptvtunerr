@@ -178,6 +178,13 @@ This is the first foundation step toward a larger â€œlive TV intelligence layerâ
 
 Roadmap: [docs/epics/EPIC-live-tv-intelligence.md](docs/epics/EPIC-live-tv-intelligence.md)
 
+Channel DNA foundation is now present too:
+- each live channel gets a persisted `dna_id`
+- it prefers repaired/real `TVGID` when available
+- otherwise it falls back to normalized channel identity inputs
+
+That is not a full cross-provider identity graph yet, but it is the stable substrate for getting there.
+
 You can also use that intelligence to shape lineups:
 
 ```bash

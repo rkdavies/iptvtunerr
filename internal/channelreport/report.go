@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/snapetech/iptvtunerr/internal/catalog"
+	"github.com/snapetech/iptvtunerr/internal/channeldna"
 	"github.com/snapetech/iptvtunerr/internal/epglink"
 )
 
@@ -43,6 +44,7 @@ type EPGMatchStats struct {
 
 type ChannelHealth struct {
 	ChannelID         string   `json:"channel_id"`
+	DNAID             string   `json:"dna_id,omitempty"`
 	GuideNumber       string   `json:"guide_number"`
 	GuideName         string   `json:"guide_name"`
 	TVGID             string   `json:"tvg_id,omitempty"`
@@ -157,6 +159,7 @@ func AttachEPGMatchReport(report *Report, rep epglink.Report) {
 func scoreChannel(ch catalog.LiveChannel) ChannelHealth {
 	row := ChannelHealth{
 		ChannelID:         ch.ChannelID,
+		DNAID:             channeldna.Compute(ch),
 		GuideNumber:       ch.GuideNumber,
 		GuideName:         ch.GuideName,
 		TVGID:             ch.TVGID,

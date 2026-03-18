@@ -199,6 +199,10 @@ Use for:
 - confirming whether EPG success is coming from exact `tvg-id` matches or repairs
 - building a prioritized cleanup queue for aliases, backup streams, and stable guide numbers
 
+Notes:
+- each reported channel now includes a persisted `dna_id`
+- the current Channel DNA foundation prefers real/repaired `TVGID`, then falls back to normalized channel identity inputs
+
 ## `iptv-tunerr probe`
 
 Probe provider URLs and print ranked results (best host first).

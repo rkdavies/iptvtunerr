@@ -70,8 +70,9 @@ Make IPTV Tunerr feel less like a tuner bridge and more like a live-TV intellige
   - `INT-001` channel health report foundation
   - `INT-002` EPG match provenance in the report when XMLTV is supplied
   - early lineup recipes driven by channel intelligence scores (`high_confidence`, `balanced`, `guide_first`, `resilient`)
+  - Channel DNA foundation: persisted `dna_id` derived from repaired `TVGID` or normalized channel identity inputs
 - Next recommended slice:
-  - persist richer match provenance and long-lived channel identity into a Channel DNA store
+  - persist richer match provenance and long-lived cross-provider relationships into a full Channel DNA store
 
 See also
 --------
