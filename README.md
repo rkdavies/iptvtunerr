@@ -269,9 +269,11 @@ Example:
 ```bash
 curl -s "http://127.0.0.1:5004/guide/capsules.json?horizon=4h&limit=12" | jq
 iptv-tunerr catchup-capsules -catalog ./catalog.json -xmltv http://127.0.0.1:5004/guide.xml -out ./capsules.json
+iptv-tunerr catchup-capsules -catalog ./catalog.json -xmltv http://127.0.0.1:5004/guide.xml -layout-dir ./capsule-layout
 ```
 
 This is a preview/feed only. It does not publish Plex library items yet.
+The new `-layout-dir` mode writes lane-split JSON files plus `manifest.json` for downstream automation.
 
 You can also use that intelligence to shape lineups:
 

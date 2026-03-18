@@ -646,6 +646,7 @@ func main() {
 	catchupCapsulesHorizon := catchupCapsulesCmd.Duration("horizon", 3*time.Hour, "How far ahead to include candidate programme windows")
 	catchupCapsulesLimit := catchupCapsulesCmd.Int("limit", 20, "Max capsules to export")
 	catchupCapsulesOut := catchupCapsulesCmd.String("out", "", "Optional JSON output path (default: stdout)")
+	catchupCapsulesLayoutDir := catchupCapsulesCmd.String("layout-dir", "", "Optional output directory for lane-split capsule JSON files plus manifest.json")
 
 	if len(os.Args) < 2 {
 		fmt.Fprintf(os.Stderr, "iptv-tunerr %s — live TV streaming + XMLTV guide for Plex, Emby, Jellyfin\n\n", Version)
@@ -1797,6 +1798,14 @@ func main() {
 			os.Exit(1)
 		}
 		out, _ := json.MarshalIndent(rep, "", "  ")
+		if dir := strings.TrimSpace(*catchupCapsulesLayoutDir); dir != "" {
+			written, err := tuner.SaveCatchupCapsuleLanes(dir, rep)
+			if err != nil {
+				log.Printf("Write catchup capsule layout %s: %v", dir, err)
+				os.Exit(1)
+			}
+			log.Printf("Wrote catchup capsule layout: %s (%d lane files)", dir, len(written))
+		}
 		if p := strings.TrimSpace(*catchupCapsulesOut); p != "" {
 			if err := os.WriteFile(p, out, 0o600); err != nil {
 				log.Printf("Write catchup capsules %s: %v", p, err)

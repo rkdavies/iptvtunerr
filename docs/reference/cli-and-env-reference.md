@@ -298,6 +298,7 @@ Common flags:
 - `-horizon`
 - `-limit`
 - `-out`
+- `-layout-dir` — optional lane-split output directory; writes `<lane>.json` files plus `manifest.json`
 
 ## `iptv-tunerr probe`
 
