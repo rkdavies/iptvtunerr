@@ -1,8 +1,42 @@
-# IPTV Tunerr
+<h1 align="center">IPTV Tunerr</h1>
+<p align="center"><strong>IPTV → Plex · Emby · Jellyfin &nbsp;|&nbsp; Live TV, Guide/EPG, VOD — one binary</strong></p>
+<p align="center">
+  <a href="https://github.com/snapetech/iptvtunerr/releases">Releases</a> •
+  <a href="https://github.com/snapetech/iptvtunerr/issues">Issues</a> •
+  <a href="#two-core-capabilities">Features</a> •
+  <a href="#quick-start">Quick Start</a> •
+  <a href="#kubernetes">Kubernetes</a>
+</p>
+<p align="center">
+  <a href="https://github.com/snapetech/iptvtunerr/actions/workflows/docker.yml"><img src="https://github.com/snapetech/iptvtunerr/actions/workflows/docker.yml/badge.svg" alt="Docker Build"></a>
+  <a href="https://github.com/snapetech/iptvtunerr/releases"><img src="https://img.shields.io/github/v/release/snapetech/iptvtunerr?label=release&color=brightgreen" alt="Latest Release"></a>
+  <a href="https://github.com/snapetech/iptvtunerr/releases"><img src="https://img.shields.io/github/downloads/snapetech/iptvtunerr/total?color=blue" alt="Downloads"></a>
+  <a href="https://ghcr.io/snapetech/iptvtunerr"><img src="https://img.shields.io/badge/ghcr.io-snapetech%2Fiptvtunerr-blue?logo=github" alt="GHCR"></a>
+  <a href="https://hub.docker.com/r/keefshape/iptvtunerr"><img src="https://img.shields.io/docker/pulls/keefshape/iptvtunerr?logo=docker&label=Docker+Hub" alt="Docker Hub"></a>
+  <a href="https://github.com/snapetech/iptvtunerr/blob/main/LICENSE"><img src="https://img.shields.io/github/license/snapetech/iptvtunerr" alt="License"></a>
+</p>
+
+---
 
 IPTV Tunerr connects IPTV providers (M3U/Xtream) to Plex, Emby, and Jellyfin. It handles two things independently: **live TV streaming** and **guide/EPG data** — use one, the other, or both.
 
-**Source:** https://github.com/snapetech/iptvtunerr
+## Release Channels
+
+| Channel | Image | Tags | Notes |
+|---------|-------|------|-------|
+| **Docker Hub** | [`keefshape/iptvtunerr`](https://hub.docker.com/r/keefshape/iptvtunerr) | `latest`, `vX.Y.Z`, `sha-*` | Primary public registry |
+| **GHCR** | [`ghcr.io/snapetech/iptvtunerr`](https://ghcr.io/snapetech/iptvtunerr) | `latest`, `vX.Y.Z`, `sha-*` | GitHub Container Registry |
+| **Binaries** | [GitHub Releases](https://github.com/snapetech/iptvtunerr/releases) | per tag | Linux / macOS / Windows · amd64 + arm64 |
+
+```bash
+# Docker Hub
+docker pull keefshape/iptvtunerr:latest
+
+# GHCR
+docker pull ghcr.io/snapetech/iptvtunerr:latest
+```
+
+Images are multi-arch (`linux/amd64`, `linux/arm64`). `latest` tracks `main`; versioned tags are cut from `v*` git tags alongside binary release archives.
 
 ---
 
