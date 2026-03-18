@@ -309,3 +309,9 @@
   - Impact: after the programme window rolls forward, a stale capsule may still open the live channel rather than a historical recording if the library has not been refreshed yet.
   - What works: rerun `iptv-tunerr catchup-publish` on a schedule (and keep `-refresh=true`) so expired capsules disappear and the visible library stays aligned with current guide windows.
   - Boundary: this is intentional for now; the app does not yet record or preserve programme-bounded media assets.
+
+- **Emby/Jellyfin `run -register-*` does the first registration attempt before the local HTTP server is listening, so the initial create can fail on a cold start and then recover only on the watchdog retry:** Reconfirmed live on 2026-03-18.
+  - Symptom: startup logs show `register tuner host returned 500: Connection refused (...)` even though the tuner becomes healthy seconds later.
+  - Impact: short smoke tests can falsely report registration failure if they check only the first attempt.
+  - What works: the watchdog retry succeeds once the server is listening; for test lanes, shorten `-register-emby-interval` / `-register-jellyfin-interval` temporarily to prove recovery faster.
+  - Proper fix still open: defer the first registration until after the HTTP server is accepting connections, not before.

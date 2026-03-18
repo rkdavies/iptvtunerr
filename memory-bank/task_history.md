@@ -1474,3 +1474,8 @@ kubectl rollout restart deployment/iptvtunerr-supervisor deployment/iptvtunerr-o
     - `./scripts/verify`
   Notes:
     - Published capsules are near-live launchers backed by guide windows and live-channel `.strm` targets, not archived recordings.
+    - Live cluster validation on 2026-03-18 proved:
+      - Emby tuner registration recovered and indexed channels
+      - Jellyfin tuner registration recovered and indexed channels
+      - Emby catch-up library publishing created lane libraries and on-disk `.strm + .nfo` output on the server PVC
+      - Jellyfin required an additional API compatibility follow-up (`GET /Library/VirtualFolders`, query-param create on `POST /Library/VirtualFolders`) before its catch-up library publishing path succeeded live too

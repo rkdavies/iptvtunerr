@@ -27,6 +27,7 @@ All notable changes to IPTV Tunerr are documented here. Repo: [github.com/snapet
 - **Catch-up capsule export**: added `iptv-tunerr catchup-capsules` to export the capsule preview model to JSON from a catalog plus guide/XMLTV input.
 - **Catch-up capsule layout export**: `catchup-capsules -layout-dir` now writes deterministic lane-split JSON files plus `manifest.json` for downstream publisher automation.
 - **Catch-up capsule publishing**: added `iptv-tunerr catchup-publish`, which turns capsule rows into `.strm + .nfo` lane libraries plus `publish-manifest.json`, and can now create/reuse matching Plex, Emby, and Jellyfin libraries in one pass.
+- **Jellyfin catch-up library compatibility**: catch-up publishing now uses Jellyfin's current `/Library/VirtualFolders` API shape (list via `GET /Library/VirtualFolders`, create with query params) instead of assuming Emby's older `/Query` behavior.
 - **Channel DNA grouping surface**: added `/channels/dna.json` and `iptv-tunerr channel-dna-report` to group live channels by shared stable identity instead of exposing `dna_id` only as a per-row field.
 - **Product roadmap**: documented the Live TV Intelligence epic (Channel DNA, Autopilot, lineup recipes, Ghost Hunter, catch-up capsules).
 

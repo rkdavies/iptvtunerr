@@ -19,20 +19,12 @@ type LibraryCreateSpec struct {
 
 func ListLibraries(cfg Config) ([]LibraryInfo, error) {
 	client := newHTTPClient()
-	u := cfg.Host + "/Library/VirtualFolders/Query"
-	status, data, err := apiRequest(client, http.MethodGet, u, cfg.Token, nil)
+	items, err := listVirtualFolders(client, cfg)
 	if err != nil {
-		return nil, fmt.Errorf("list libraries: %w", err)
+		return nil, err
 	}
-	if status != http.StatusOK {
-		return nil, fmt.Errorf("list libraries returned %d: %s", status, trunc(string(data), 300))
-	}
-	var resp VirtualFolderQueryResult
-	if err := json.Unmarshal(data, &resp); err != nil {
-		return nil, fmt.Errorf("parse libraries: %w", err)
-	}
-	out := make([]LibraryInfo, 0, len(resp.Items))
-	for _, item := range resp.Items {
+	out := make([]LibraryInfo, 0, len(items))
+	for _, item := range items {
 		id := strings.TrimSpace(item.ID)
 		if id == "" {
 			id = strings.TrimSpace(item.ItemID)
@@ -52,6 +44,38 @@ func ListLibraries(cfg Config) ([]LibraryInfo, error) {
 		})
 	}
 	return out, nil
+}
+
+func listVirtualFolders(client *http.Client, cfg Config) ([]VirtualFolderInfo, error) {
+	queryURL := cfg.Host + "/Library/VirtualFolders/Query"
+	status, data, err := apiRequest(client, http.MethodGet, queryURL, cfg.Token, nil)
+	if err == nil && status == http.StatusOK {
+		var resp VirtualFolderQueryResult
+		if err := json.Unmarshal(data, &resp); err != nil {
+			return nil, fmt.Errorf("parse libraries: %w", err)
+		}
+		return resp.Items, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("list libraries: %w", err)
+	}
+	if status != http.StatusNotFound {
+		return nil, fmt.Errorf("list libraries returned %d: %s", status, trunc(string(data), 300))
+	}
+
+	legacyURL := cfg.Host + "/Library/VirtualFolders"
+	status, data, err = apiRequest(client, http.MethodGet, legacyURL, cfg.Token, nil)
+	if err != nil {
+		return nil, fmt.Errorf("list libraries fallback: %w", err)
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("list libraries fallback returned %d: %s", status, trunc(string(data), 300))
+	}
+	var items []VirtualFolderInfo
+	if err := json.Unmarshal(data, &items); err != nil {
+		return nil, fmt.Errorf("parse libraries fallback: %w", err)
+	}
+	return items, nil
 }
 
 func CreateLibrary(cfg Config, spec LibraryCreateSpec) error {
@@ -74,8 +98,7 @@ func CreateLibrary(cfg Config, spec LibraryCreateSpec) error {
 		Paths:          []string{spec.Path},
 	}
 	client := newHTTPClient()
-	u := cfg.Host + "/Library/VirtualFolders"
-	status, data, err := apiRequest(client, http.MethodPost, u, cfg.Token, body)
+	status, data, err := apiRequest(client, http.MethodPost, createLibraryURL(cfg, spec), cfg.Token, createLibraryBody(cfg, body))
 	if err != nil {
 		return fmt.Errorf("create library %q: %w", spec.Name, err)
 	}
@@ -83,6 +106,29 @@ func CreateLibrary(cfg Config, spec LibraryCreateSpec) error {
 		return fmt.Errorf("create library %q returned %d: %s", spec.Name, status, trunc(string(data), 300))
 	}
 	return nil
+}
+
+func createLibraryURL(cfg Config, spec LibraryCreateSpec) string {
+	if strings.EqualFold(strings.TrimSpace(cfg.ServerType), "jellyfin") {
+		q := url.Values{}
+		q.Set("name", spec.Name)
+		q.Set("collectionType", spec.CollectionType)
+		q.Set("paths", spec.Path)
+		if spec.Refresh {
+			q.Set("refreshLibrary", "true")
+		} else {
+			q.Set("refreshLibrary", "false")
+		}
+		return cfg.Host + "/Library/VirtualFolders?" + q.Encode()
+	}
+	return cfg.Host + "/Library/VirtualFolders"
+}
+
+func createLibraryBody(cfg Config, body AddVirtualFolder) interface{} {
+	if strings.EqualFold(strings.TrimSpace(cfg.ServerType), "jellyfin") {
+		return map[string]any{}
+	}
+	return body
 }
 
 func EnsureLibrary(cfg Config, spec LibraryCreateSpec) (*LibraryInfo, bool, error) {
