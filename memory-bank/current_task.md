@@ -8,6 +8,16 @@
 
 **Last updated:** 2026-03-18
 
+**Current focus shift (catch-up library publishing + media-server parity, 2026-03-18):**
+- User asked to close the remaining catch-up gap and extend the new intelligence/capsule work to Emby and Jellyfin too, not just Plex.
+- Implemented in this session:
+  1. Added real catch-up publishing via `iptv-tunerr catchup-publish`.
+  2. Publisher now writes media-server-ingestible `.strm + .nfo` items plus `publish-manifest.json`.
+  3. Output is lane-based (`sports`, `movies`, `general`) and uses one movie-style library per lane.
+  4. Added Emby/Jellyfin library list/create/refresh helpers via `/Library/VirtualFolders` so catch-up publishing can create/reuse matching libraries there too.
+  5. Reused the existing Plex library-registration path and VOD-safe preset so Plex gets the same library automation.
+  6. Updated README/features/reference/emby-jellyfin docs and changelog to reflect that catch-up publishing is now a real cross-server workflow, not only a preview/export surface.
+
 **Current focus shift (Live TV Intelligence foundation, 2026-03-18):**
 - User asked for the “Pop” pass: identify the biggest user-wowing opportunities, map them, and start implementation immediately.
 - Product direction captured in `docs/epics/EPIC-live-tv-intelligence.md`.

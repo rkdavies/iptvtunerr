@@ -2,8 +2,9 @@
 
 iptvTunerr supports Emby and Jellyfin as first-class media servers alongside Plex. The existing
 HDHomeRun HTTP emulation layer (`/discover.json`, `/lineup.json`, `/guide.xml`, `/stream/`) works
-unchanged for all three servers — no new endpoints were added. The new `internal/emby` package
-handles programmatic registration so you never need to click through the UI wizard.
+unchanged for all three servers — no new endpoints were added. The `internal/emby` package now
+handles both programmatic Live TV registration and catch-up library registration so you do not need
+to click through either setup flow manually.
 
 ---
 
@@ -35,6 +36,36 @@ automatically once the guide is indexed.
 | Tuner type string | (proprietary DVR model) | `"hdhomerun"` |
 | XMLTV type string | (lineup:// URI scheme) | `"xmltv"` |
 | List configured tuners | Endpoint available | No list endpoint |
+
+### Catch-up capsule library parity
+
+The near-live catch-up publisher now works across all three servers:
+
+| Capability | Plex | Emby | Jellyfin |
+|-----------|------|-------|-----------|
+| Generate `.strm + .nfo` capsule library layout | Yes | Yes | Yes |
+| Auto-create lane libraries | Yes | Yes | Yes |
+| Auto-refresh/scan after publish | Yes | Yes | Yes |
+| Per-library "virtual library" preset | Yes (`plex-vod-register` preset reused) | No direct equivalent | No direct equivalent |
+
+Use `iptv-tunerr catchup-publish` with `-register-emby` and/or `-register-jellyfin`:
+
+```bash
+IPTV_TUNERR_EMBY_HOST=http://emby:8096 \
+IPTV_TUNERR_EMBY_TOKEN=emby-api-key \
+IPTV_TUNERR_JELLYFIN_HOST=http://jellyfin:8096 \
+IPTV_TUNERR_JELLYFIN_TOKEN=jellyfin-api-key \
+iptv-tunerr catchup-publish \
+  -catalog ./catalog.json \
+  -xmltv http://127.0.0.1:5004/guide.xml \
+  -stream-base-url http://127.0.0.1:5004 \
+  -out-dir ./catchup-published \
+  -register-emby \
+  -register-jellyfin
+```
+
+This creates/reuses one movie library per lane (`Catchup Sports`, `Catchup Movies`, `Catchup General`)
+using `/Library/VirtualFolders`, then triggers a library refresh scan.
 
 ### Idempotency and state file
 

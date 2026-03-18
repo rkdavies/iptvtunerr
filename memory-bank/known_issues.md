@@ -303,3 +303,9 @@
   - **Fixed (2026-02-28):** All 11 VODFS `volumeMounts` in the live Plex deployment now have `mountPropagation: HostToContainer`. FUSE mounts active on kspls0 propagate into the container automatically, even if mounted after the pod starts.
   - All 11 VODFS lane processes are now managed by systemd on kspls0 (`iptvtunerr-vodfs-*.service`, enabled, restart-on-failure). See `k3s/plex/VODFS-SYSTEMD.md` for unit table and recovery procedure.
   - Recovery if mounts are still empty after pod restart: `sudo systemctl status 'iptvtunerr-vodfs-*'` on kspls0 to confirm all units running, then `mount | grep fuse` to confirm 11 FUSE mounts. If a unit is down, `sudo systemctl restart iptvtunerr-vodfs-<lane>`. Pod no longer needs to be restarted for mount visibility once `HostToContainer` propagation is set.
+
+- **Catch-up published libraries are near-live launchers, not archived recordings:** Added on 2026-03-18 with `catchup-publish`.
+  - Symptom / confusion risk: the library cards look like standalone programme items in Plex/Emby/Jellyfin, but opening them just launches the current live channel stream referenced by the generated `.strm` file.
+  - Impact: after the programme window rolls forward, a stale capsule may still open the live channel rather than a historical recording if the library has not been refreshed yet.
+  - What works: rerun `iptv-tunerr catchup-publish` on a schedule (and keep `-refresh=true`) so expired capsules disappear and the visible library stays aligned with current guide windows.
+  - Boundary: this is intentional for now; the app does not yet record or preserve programme-bounded media assets.

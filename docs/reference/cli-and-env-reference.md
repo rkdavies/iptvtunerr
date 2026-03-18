@@ -297,7 +297,7 @@ Current states:
 - `in_progress`
 - `starting_soon`
 
-This endpoint does not publish Plex library items yet; it is the preview/input layer for a later catch-up publisher.
+This endpoint is the preview/input layer for the `catchup-publish` command.
 
 ## `iptv-tunerr catchup-capsules`
 
@@ -310,6 +310,42 @@ Common flags:
 - `-limit`
 - `-out`
 - `-layout-dir` — optional lane-split output directory; writes `<lane>.json` files plus `manifest.json`
+
+## `iptv-tunerr catchup-publish`
+
+Publish near-live guide capsules as media-server-ingestible `.strm + .nfo` libraries.
+
+Common flags:
+- `-catalog`
+- `-xmltv` — required; local file or `http(s)` URL, including your own `/guide.xml`
+- `-horizon`
+- `-limit`
+- `-out-dir` — required; root output directory
+- `-stream-base-url` — required unless `IPTV_TUNERR_BASE_URL` is set; used inside generated `.strm` files
+- `-library-prefix` — default `Catchup`
+- `-manifest-out`
+- `-register-plex`
+- `-register-emby`
+- `-register-jellyfin`
+- `-refresh`
+
+Output shape:
+- `<out-dir>/sports/...`
+- `<out-dir>/movies/...`
+- `<out-dir>/general/...`
+- one folder per capsule, containing:
+  - `<name>.strm`
+  - `<name>.nfo`
+- `publish-manifest.json`
+
+Registration behavior:
+- Plex: creates/reuses one movie library per lane and applies the same VOD-safe library preset used by `plex-vod-register`
+- Emby/Jellyfin: creates/reuses one movie library per lane via `/Library/VirtualFolders`, then triggers a library refresh scan when `-refresh=true`
+
+Operational note:
+- published items are near-live launchers, not recordings
+- each `.strm` points back to `IPTV_TUNERR_BASE_URL/stream/<channel>`
+- rerun the publisher on a schedule to keep the lane libraries current
 
 ## `iptv-tunerr probe`
 

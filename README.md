@@ -275,8 +275,33 @@ iptv-tunerr catchup-capsules -catalog ./catalog.json -xmltv http://127.0.0.1:500
 iptv-tunerr catchup-capsules -catalog ./catalog.json -xmltv http://127.0.0.1:5004/guide.xml -layout-dir ./capsule-layout
 ```
 
-This is a preview/feed only. It does not publish Plex library items yet.
-The new `-layout-dir` mode writes lane-split JSON files plus `manifest.json` for downstream automation.
+Catch-up publishing is now present too:
+- CLI: `iptv-tunerr catchup-publish`
+- writes real library-ingestible `.strm + .nfo` items into lane directories:
+  - `sports/`
+  - `movies/`
+  - `general/`
+- writes `publish-manifest.json`
+- can create/reuse and refresh matching movie libraries in:
+  - Plex
+  - Emby
+  - Jellyfin
+
+Example:
+
+```bash
+iptv-tunerr catchup-publish \
+  -catalog ./catalog.json \
+  -xmltv http://127.0.0.1:5004/guide.xml \
+  -stream-base-url http://127.0.0.1:5004 \
+  -out-dir ./catchup-published \
+  -register-plex
+```
+
+The generated items are near-live launchers, not historical recordings:
+- each item carries show metadata from the guide block
+- each `.strm` points back to the matching live channel stream
+- rerun the publisher on a schedule to keep the libraries fresh as programme windows roll
 
 You can also use that intelligence to shape lineups:
 
@@ -370,6 +395,10 @@ Config reference: [`docs/reference/testing-and-supervisor-config.md`](docs/refer
 | `probe` | Test and rank provider hosts |
 | `supervise` | Run multiple child tuner instances from a JSON config |
 | `channel-report` | Score channels by guide confidence, stream resilience, and EPG match quality |
+| `channel-dna-report` | Group channels by stable cross-provider `dna_id` identity |
+| `ghost-hunter` | Observe Plex Live TV sessions and classify stale/hidden-grab cases |
+| `catchup-capsules` | Export near-live capsule candidates from guide XMLTV |
+| `catchup-publish` | Publish catch-up capsules as `.strm + .nfo` libraries and optionally register them |
 | `epg-link-report` | Report EPG coverage and unmatched channels |
 | `mount` | Mount VODFS (Linux only) |
 | `plex-vod-register` | Create or reuse Plex VOD libraries for a VODFS mount |

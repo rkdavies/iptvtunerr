@@ -259,6 +259,108 @@ func applyPlexVODLibraryPreset(plexBaseURL, plexToken string, sec *plex.LibraryS
 	return plex.UpdateLibrarySectionPrefs(plexBaseURL, plexToken, sec.Key, updates)
 }
 
+func resolvePlexAccess(flagURL, flagToken string) (string, string) {
+	baseURL := strings.TrimSpace(flagURL)
+	if baseURL == "" {
+		baseURL = strings.TrimSpace(os.Getenv("IPTV_TUNERR_PMS_URL"))
+	}
+	if baseURL == "" {
+		if host := strings.TrimSpace(os.Getenv("PLEX_HOST")); host != "" {
+			baseURL = "http://" + host + ":32400"
+		}
+	}
+	token := strings.TrimSpace(flagToken)
+	if token == "" {
+		token = strings.TrimSpace(os.Getenv("IPTV_TUNERR_PMS_TOKEN"))
+	}
+	if token == "" {
+		token = strings.TrimSpace(os.Getenv("PLEX_TOKEN"))
+	}
+	return baseURL, token
+}
+
+func registerCatchupPlexLibraries(baseURL, token string, manifest tuner.CatchupPublishManifest, refresh bool) error {
+	for _, lib := range manifest.Libraries {
+		sec, created, err := plex.EnsureLibrarySection(baseURL, token, plex.LibraryCreateSpec{
+			Name:     lib.Name,
+			Type:     "movie",
+			Path:     lib.Path,
+			Language: "en-US",
+		})
+		if err != nil {
+			return err
+		}
+		if created {
+			log.Printf("Created Plex catch-up library %q (key=%s path=%s)", sec.Title, sec.Key, lib.Path)
+		} else {
+			log.Printf("Reusing Plex catch-up library %q (key=%s path=%s)", sec.Title, sec.Key, lib.Path)
+		}
+		if err := applyPlexVODLibraryPreset(baseURL, token, sec); err != nil {
+			return err
+		}
+		if refresh {
+			if err := plex.RefreshLibrarySection(baseURL, token, sec.Key); err != nil {
+				return err
+			}
+			log.Printf("Refresh started for Plex catch-up library %q", sec.Title)
+		}
+	}
+	return nil
+}
+
+func registerCatchupMediaServerLibraries(serverType, host, token string, manifest tuner.CatchupPublishManifest, refresh bool) error {
+	cfg := emby.Config{
+		Host:       strings.TrimSpace(host),
+		Token:      strings.TrimSpace(token),
+		ServerType: serverType,
+	}
+	for _, lib := range manifest.Libraries {
+		got, created, err := emby.EnsureLibrary(cfg, emby.LibraryCreateSpec{
+			Name:           lib.Name,
+			CollectionType: "movies",
+			Path:           lib.Path,
+			Refresh:        false,
+		})
+		if err != nil {
+			return err
+		}
+		if created {
+			log.Printf("Created %s catch-up library %q (id=%s path=%s)", serverType, lib.Name, got.ID, lib.Path)
+		} else {
+			log.Printf("Reusing %s catch-up library %q (id=%s path=%s)", serverType, got.Name, got.ID, lib.Path)
+		}
+	}
+	if refresh {
+		if err := emby.RefreshLibraryScan(cfg); err != nil {
+			return err
+		}
+		log.Printf("Triggered %s library refresh", serverType)
+	}
+	return nil
+}
+
+func buildCatchupCapsulePreviewFromRef(path, xmltvRef string, horizon time.Duration, limit int) (tuner.CatchupCapsulePreview, error) {
+	c := catalog.New()
+	if err := c.Load(path); err != nil {
+		return tuner.CatchupCapsulePreview{}, fmt.Errorf("load catalog %s: %w", path, err)
+	}
+	live := c.SnapshotLive()
+	guideR, err := openFileOrURL(xmltvRef)
+	if err != nil {
+		return tuner.CatchupCapsulePreview{}, fmt.Errorf("open guide/XMLTV %s: %w", xmltvRef, err)
+	}
+	data, err := io.ReadAll(guideR)
+	_ = guideR.Close()
+	if err != nil {
+		return tuner.CatchupCapsulePreview{}, fmt.Errorf("read guide/XMLTV %s: %w", xmltvRef, err)
+	}
+	rep, err := tuner.BuildCatchupCapsulePreview(live, data, time.Now(), horizon, limit)
+	if err != nil {
+		return tuner.CatchupCapsulePreview{}, fmt.Errorf("build catchup capsule preview: %w", err)
+	}
+	return rep, nil
+}
+
 // catalogResult holds the output of fetchCatalog.
 type catalogResult struct {
 	Movies       []catalog.Movie
@@ -652,6 +754,26 @@ func main() {
 	catchupCapsulesOut := catchupCapsulesCmd.String("out", "", "Optional JSON output path (default: stdout)")
 	catchupCapsulesLayoutDir := catchupCapsulesCmd.String("layout-dir", "", "Optional output directory for lane-split capsule JSON files plus manifest.json")
 
+	catchupPublishCmd := flag.NewFlagSet("catchup-publish", flag.ExitOnError)
+	catchupPublishCatalog := catchupPublishCmd.String("catalog", "", "Input catalog.json (default: IPTV_TUNERR_CATALOG)")
+	catchupPublishXMLTV := catchupPublishCmd.String("xmltv", "", "Guide/XMLTV file path or http(s) URL (required; /guide.xml works well)")
+	catchupPublishHorizon := catchupPublishCmd.Duration("horizon", 3*time.Hour, "How far ahead to include capsule windows")
+	catchupPublishLimit := catchupPublishCmd.Int("limit", 20, "Max capsules to publish")
+	catchupPublishOutDir := catchupPublishCmd.String("out-dir", "", "Output directory for published catch-up libraries (required)")
+	catchupPublishStreamBaseURL := catchupPublishCmd.String("stream-base-url", "", "Base URL used inside generated .strm files (default: IPTV_TUNERR_BASE_URL)")
+	catchupPublishLibraryPrefix := catchupPublishCmd.String("library-prefix", "Catchup", "Prefix for generated library names (e.g. 'Catchup')")
+	catchupPublishManifestOut := catchupPublishCmd.String("manifest-out", "", "Optional JSON output path for the publish manifest (default: stdout)")
+	catchupPublishRegisterPlex := catchupPublishCmd.Bool("register-plex", false, "Create/reuse Plex libraries for each published lane")
+	catchupPublishRegisterEmby := catchupPublishCmd.Bool("register-emby", false, "Create/reuse Emby libraries for each published lane")
+	catchupPublishRegisterJellyfin := catchupPublishCmd.Bool("register-jellyfin", false, "Create/reuse Jellyfin libraries for each published lane")
+	catchupPublishPlexURL := catchupPublishCmd.String("plex-url", "", "Plex base URL (default: IPTV_TUNERR_PMS_URL or http://PLEX_HOST:32400)")
+	catchupPublishPlexToken := catchupPublishCmd.String("token", "", "Plex token (default: IPTV_TUNERR_PMS_TOKEN or PLEX_TOKEN)")
+	catchupPublishEmbyHost := catchupPublishCmd.String("emby-host", "", "Emby base URL (default: IPTV_TUNERR_EMBY_HOST)")
+	catchupPublishEmbyToken := catchupPublishCmd.String("emby-token", "", "Emby API key (default: IPTV_TUNERR_EMBY_TOKEN)")
+	catchupPublishJellyfinHost := catchupPublishCmd.String("jellyfin-host", "", "Jellyfin base URL (default: IPTV_TUNERR_JELLYFIN_HOST)")
+	catchupPublishJellyfinToken := catchupPublishCmd.String("jellyfin-token", "", "Jellyfin API key (default: IPTV_TUNERR_JELLYFIN_TOKEN)")
+	catchupPublishRefresh := catchupPublishCmd.Bool("refresh", true, "Trigger a library refresh/scan after create or reuse")
+
 	if len(os.Args) < 2 {
 		fmt.Fprintf(os.Stderr, "iptv-tunerr %s — live TV streaming + XMLTV guide for Plex, Emby, Jellyfin\n\n", Version)
 		fmt.Fprintf(os.Stderr, "Streaming: HDHomeRun-compatible tuner endpoints backed by M3U/Xtream with optional transcode.\n")
@@ -668,6 +790,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "  channel-dna-report  Group live channels by stable dna_id identity\n")
 		fmt.Fprintf(os.Stderr, "  ghost-hunter    Observe Plex Live TV sessions, classify stalls, optionally stop stale ones\n")
 		fmt.Fprintf(os.Stderr, "  catchup-capsules Export near-live capsule candidates from guide XML/guide.xml\n")
+		fmt.Fprintf(os.Stderr, "  catchup-publish Publish near-live capsules as .strm + .nfo libraries for Plex/Emby/Jellyfin\n")
 		fmt.Fprintf(os.Stderr, "  epg-link-report  Coverage report: which channels are EPG-linked vs unlinked, and by what match\n\n")
 		fmt.Fprintf(os.Stderr, "VOD (Linux):\n")
 		fmt.Fprintf(os.Stderr, "  mount            Mount VOD catalog as a browsable filesystem (FUSE)\n")
@@ -1569,22 +1692,7 @@ func main() {
 			}
 		}
 
-		plexBaseURL := strings.TrimSpace(*vodPlexURL)
-		if plexBaseURL == "" {
-			plexBaseURL = strings.TrimSpace(os.Getenv("IPTV_TUNERR_PMS_URL"))
-		}
-		if plexBaseURL == "" {
-			if host := strings.TrimSpace(os.Getenv("PLEX_HOST")); host != "" {
-				plexBaseURL = "http://" + host + ":32400"
-			}
-		}
-		plexToken := strings.TrimSpace(*vodPlexToken)
-		if plexToken == "" {
-			plexToken = strings.TrimSpace(os.Getenv("IPTV_TUNERR_PMS_TOKEN"))
-		}
-		if plexToken == "" {
-			plexToken = strings.TrimSpace(os.Getenv("PLEX_TOKEN"))
-		}
+		plexBaseURL, plexToken := resolvePlexAccess(*vodPlexURL, *vodPlexToken)
 		if plexBaseURL == "" || plexToken == "" {
 			log.Print("Need Plex API access: set -plex-url/-token or IPTV_TUNERR_PMS_URL+IPTV_TUNERR_PMS_TOKEN (or PLEX_HOST+PLEX_TOKEN)")
 			os.Exit(1)
@@ -1803,24 +1911,7 @@ func main() {
 			log.Print("Set -xmltv to a local file or http(s) guide/XMLTV URL")
 			os.Exit(1)
 		}
-		c := catalog.New()
-		if err := c.Load(path); err != nil {
-			log.Printf("Load catalog %s: %v", path, err)
-			os.Exit(1)
-		}
-		live := c.SnapshotLive()
-		guideR, err := openFileOrURL(xmltvRef)
-		if err != nil {
-			log.Printf("Open guide/XMLTV %s: %v", xmltvRef, err)
-			os.Exit(1)
-		}
-		data, err := io.ReadAll(guideR)
-		_ = guideR.Close()
-		if err != nil {
-			log.Printf("Read guide/XMLTV %s: %v", xmltvRef, err)
-			os.Exit(1)
-		}
-		rep, err := tuner.BuildCatchupCapsulePreview(live, data, time.Now(), *catchupCapsulesHorizon, *catchupCapsulesLimit)
+		rep, err := buildCatchupCapsulePreviewFromRef(path, xmltvRef, *catchupCapsulesHorizon, *catchupCapsulesLimit)
 		if err != nil {
 			log.Printf("Build catchup capsule preview failed: %v", err)
 			os.Exit(1)
@@ -1840,6 +1931,85 @@ func main() {
 				os.Exit(1)
 			}
 			log.Printf("Wrote catchup capsules: %s", p)
+		} else {
+			fmt.Println(string(out))
+		}
+
+	case "catchup-publish":
+		_ = catchupPublishCmd.Parse(os.Args[2:])
+		path := strings.TrimSpace(*catchupPublishCatalog)
+		if path == "" {
+			path = cfg.CatalogPath
+		}
+		xmltvRef := strings.TrimSpace(*catchupPublishXMLTV)
+		if xmltvRef == "" {
+			log.Print("Set -xmltv to a local file or http(s) guide/XMLTV URL")
+			os.Exit(1)
+		}
+		outDir := strings.TrimSpace(*catchupPublishOutDir)
+		if outDir == "" {
+			log.Print("Set -out-dir to a writable catch-up library directory")
+			os.Exit(1)
+		}
+		streamBaseURL := firstNonEmpty(strings.TrimSpace(*catchupPublishStreamBaseURL), strings.TrimSpace(cfg.BaseURL))
+		if streamBaseURL == "" {
+			log.Print("Set -stream-base-url or IPTV_TUNERR_BASE_URL so generated .strm files can reach this tuner")
+			os.Exit(1)
+		}
+		rep, err := buildCatchupCapsulePreviewFromRef(path, xmltvRef, *catchupPublishHorizon, *catchupPublishLimit)
+		if err != nil {
+			log.Printf("Build catchup capsule preview failed: %v", err)
+			os.Exit(1)
+		}
+		manifest, err := tuner.SaveCatchupCapsuleLibraryLayout(outDir, streamBaseURL, *catchupPublishLibraryPrefix, rep)
+		if err != nil {
+			log.Printf("Publish catchup capsules failed: %v", err)
+			os.Exit(1)
+		}
+		log.Printf("Published %d catch-up capsule items into %s", len(manifest.Items), outDir)
+
+		if *catchupPublishRegisterPlex {
+			plexBaseURL, plexToken := resolvePlexAccess(*catchupPublishPlexURL, *catchupPublishPlexToken)
+			if plexBaseURL == "" || plexToken == "" {
+				log.Print("Need Plex API access for -register-plex: set -plex-url/-token or IPTV_TUNERR_PMS_URL+IPTV_TUNERR_PMS_TOKEN")
+				os.Exit(1)
+			}
+			if err := registerCatchupPlexLibraries(plexBaseURL, plexToken, manifest, *catchupPublishRefresh); err != nil {
+				log.Printf("Register Plex catch-up libraries failed: %v", err)
+				os.Exit(1)
+			}
+		}
+		if *catchupPublishRegisterEmby {
+			host := firstNonEmpty(*catchupPublishEmbyHost, cfg.EmbyHost)
+			token := firstNonEmpty(*catchupPublishEmbyToken, cfg.EmbyToken)
+			if host == "" || token == "" {
+				log.Print("Need Emby API access for -register-emby: set -emby-host/-emby-token or IPTV_TUNERR_EMBY_HOST+IPTV_TUNERR_EMBY_TOKEN")
+				os.Exit(1)
+			}
+			if err := registerCatchupMediaServerLibraries("emby", host, token, manifest, *catchupPublishRefresh); err != nil {
+				log.Printf("Register Emby catch-up libraries failed: %v", err)
+				os.Exit(1)
+			}
+		}
+		if *catchupPublishRegisterJellyfin {
+			host := firstNonEmpty(*catchupPublishJellyfinHost, cfg.JellyfinHost)
+			token := firstNonEmpty(*catchupPublishJellyfinToken, cfg.JellyfinToken)
+			if host == "" || token == "" {
+				log.Print("Need Jellyfin API access for -register-jellyfin: set -jellyfin-host/-jellyfin-token or IPTV_TUNERR_JELLYFIN_HOST+IPTV_TUNERR_JELLYFIN_TOKEN")
+				os.Exit(1)
+			}
+			if err := registerCatchupMediaServerLibraries("jellyfin", host, token, manifest, *catchupPublishRefresh); err != nil {
+				log.Printf("Register Jellyfin catch-up libraries failed: %v", err)
+				os.Exit(1)
+			}
+		}
+		out, _ := json.MarshalIndent(manifest, "", "  ")
+		if p := strings.TrimSpace(*catchupPublishManifestOut); p != "" {
+			if err := os.WriteFile(p, out, 0o600); err != nil {
+				log.Printf("Write catchup publish manifest %s: %v", p, err)
+				os.Exit(1)
+			}
+			log.Printf("Wrote catch-up publish manifest: %s", p)
 		} else {
 			fmt.Println(string(out))
 		}

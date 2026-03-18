@@ -1458,3 +1458,19 @@ kubectl rollout restart deployment/iptvtunerr-supervisor deployment/iptvtunerr-o
   Opportunities filed:
     - Add `mountPropagation: HostToContainer` to Plex deployment YAML VODFS hostPath volume mounts to prevent empty-mount-after-restart.
     - Add systemd services or a node-startup script on kspls0 for VODFS lane processes to survive host reboots.
+
+---
+
+- Date: 2026-03-18
+  Title: Catch-up publisher and Plex/Emby/Jellyfin library parity
+  Summary:
+    - Added `iptv-tunerr catchup-publish`, which turns near-live guide capsules into `.strm + .nfo` lane libraries plus `publish-manifest.json`.
+    - Added `internal/tuner/catchup_publish.go` and tests so capsule output is now media-server-ingestible instead of remaining JSON-only.
+    - Added Emby/Jellyfin library list/create/refresh helpers in `internal/emby/library.go` using `/Library/VirtualFolders` and `/Library/Refresh`.
+    - Wired optional catch-up library registration for Plex, Emby, and Jellyfin from the new publisher command.
+    - Updated README, features, CLI/reference docs, Emby/Jellyfin support docs, changelog, and memory-bank notes.
+  Verification:
+    - `go test ./internal/emby ./internal/tuner ./cmd/iptv-tunerr`
+    - `./scripts/verify`
+  Notes:
+    - Published capsules are near-live launchers backed by guide windows and live-channel `.strm` targets, not archived recordings.

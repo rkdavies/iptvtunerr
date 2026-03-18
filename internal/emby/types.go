@@ -38,3 +38,34 @@ type ScheduledTask struct {
 type LiveTvChannelList struct {
 	TotalRecordCount int `json:"TotalRecordCount"`
 }
+
+// LibraryInfo is a simplified view of a configured Emby/Jellyfin library.
+type LibraryInfo struct {
+	ID             string   `json:"id,omitempty"`
+	Name           string   `json:"name"`
+	CollectionType string   `json:"collection_type"`
+	Locations      []string `json:"locations,omitempty"`
+}
+
+// VirtualFolderQueryResult is the response shape of GET /Library/VirtualFolders/Query.
+type VirtualFolderQueryResult struct {
+	Items            []VirtualFolderInfo `json:"Items"`
+	TotalRecordCount int                 `json:"TotalRecordCount"`
+}
+
+// VirtualFolderInfo is one configured library/virtual folder.
+type VirtualFolderInfo struct {
+	Name           string   `json:"Name"`
+	CollectionType string   `json:"CollectionType"`
+	ItemID         string   `json:"ItemId"`
+	ID             string   `json:"Id"`
+	Locations      []string `json:"Locations"`
+}
+
+// AddVirtualFolder is the request body for POST /Library/VirtualFolders.
+type AddVirtualFolder struct {
+	Name           string   `json:"Name"`
+	CollectionType string   `json:"CollectionType"`
+	RefreshLibrary bool     `json:"RefreshLibrary"`
+	Paths          []string `json:"Paths"`
+}
