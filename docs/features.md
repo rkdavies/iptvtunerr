@@ -76,7 +76,17 @@ The guide pipeline merges three sources in priority order per channel: provider 
 | **Non-Latin title fallback** | Optional fallback to channel name when title text is non-Latin and no usable variant exists. |
 | **Guide number offsets** | Per-instance channel/guide number offsets to avoid Plex multi-DVR guide collisions. |
 
-## 6. Lineup shaping for HDHR wizard / provider matching
+## 6. Channel intelligence
+
+| Feature | Description |
+|---------|-------------|
+| **Channel health report** | Per-channel score/tier showing guide confidence, stream resilience, strengths, risks, and next actions (`channel-report` or `/channels/report.json`). |
+| **EPG match provenance** | When an XMLTV source is supplied to the report command, channels show whether they matched by exact `tvg-id`, alias override, normalized-name repair, or not at all. |
+| **Top opportunity summary** | Report summary highlights the highest-frequency fixes across the lineup (for example missing `TVGID`, no backup streams, or alias repair candidates). |
+| **Lineup recipes** | Intelligence-driven lineup shaping with `IPTV_TUNERR_LINEUP_RECIPE=high_confidence|balanced|guide_first|resilient`. |
+| **Live TV intelligence roadmap** | Product roadmap documented as an epic: Channel DNA, Autopilot, lineup recipes, Ghost Hunter, and catch-up capsules. |
+
+## 7. Lineup shaping for HDHR wizard / provider matching
 
 | Feature | Description |
 |---------|-------------|
@@ -86,7 +96,7 @@ The guide pipeline merges three sources in priority order per channel: provider 
 | **Region/profile shaping** | Pre-cap channel ordering (`IPTV_TUNERR_LINEUP_SHAPE`, `IPTV_TUNERR_LINEUP_REGION_PROFILE`) to improve provider matching behavior. |
 | **Lineup sharding (overflow buckets)** | Post-filter/pre-cap slicing with `IPTV_TUNERR_LINEUP_SKIP` / `IPTV_TUNERR_LINEUP_TAKE` for `category2/category3/...` injected DVR overflow children. |
 
-## 7. Plex integration workflows
+## 8. Plex integration workflows
 
 | Workflow | Supported | Notes |
 |----------|-----------|-------|
@@ -99,7 +109,7 @@ The guide pipeline merges three sources in priority order per channel: provider 
 Reference:
 - [plex-dvr-lifecycle-and-api](reference/plex-dvr-lifecycle-and-api.md)
 
-## 8. Multi-instance supervisor mode (single app / single pod)
+## 9. Multi-instance supervisor mode (single app / single pod)
 
 | Feature | Description |
 |---------|-------------|
@@ -110,7 +120,7 @@ Reference:
 | **k8s cutover examples** | Example JSON/manifests and URI cutover mapping included. |
 | **Overflow shard generation** | Supervisor manifest generator can auto-create overflow category children from confirmed linked counts (`--category-counts-json`, `--category-cap`). |
 
-## 9. Plex session cleanup / stale playback handling
+## 10. Plex session cleanup / stale playback handling
 
 | Feature | Description |
 |---------|-------------|
@@ -119,7 +129,7 @@ Reference:
 | **Idle / renewable lease / hard lease** | Tunable timers for stale-session pruning and backstop cleanup. |
 | **External helper (Python)** | `scripts/plex-live-session-drain.py` remains available for lab/k8s workflows. |
 
-## 10. VOD and VODFS
+## 11. VOD and VODFS
 
 | Feature | Description |
 |---------|-------------|
@@ -130,7 +140,7 @@ Reference:
 | **One-sided VOD registration** | `plex-vod-register --shows-only` / `--movies-only` for lane-specific library creation without unwanted companion sections. |
 | **Platform scope** | `mount` / VODFS is Linux-only. Non-Linux builds provide a stub. |
 
-## 11. Packaging, testing, and ops tooling
+## 12. Packaging, testing, and ops tooling
 
 | Feature | Description |
 |---------|-------------|
@@ -142,7 +152,7 @@ Reference:
 | **Plex stream override analysis helper** | `scripts/plex-generate-stream-overrides.py` for feed/profile override candidate generation. |
 | **Live TV provider label rewrite proxy** | `scripts/plex-media-providers-label-proxy.py` + k8s deploy helper to rewrite `/media/providers` labels (client-dependent effect). |
 
-## 12. Platform support summary
+## 13. Platform support summary
 
 | Platform | Core app (`run/serve/index/probe/supervise`) | HDHR HTTP endpoints | HDHR network mode | `mount` / VODFS |
 |----------|----------------------------------------------|---------------------|-------------------|-----------------|
@@ -150,7 +160,7 @@ Reference:
 | macOS | Yes | Yes | Compiles (runtime validation depends on environment) | No |
 | Windows | Yes | Yes | Compiles (native validation recommended; `wine` smoke not authoritative) | No |
 
-## 13. Not supported / limits (current)
+## 14. Not supported / limits (current)
 
 - **Web UI** (by design; CLI/env only)
 - **Plex wizard checkbox preselection for >479 channels** (HDHR protocol/wizard limitation; serve only the channels you want selectable)

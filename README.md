@@ -26,7 +26,7 @@ IPTV Tunerr connects IPTV providers (M3U/Xtream) to Plex, Emby, and Jellyfin. It
 |---------|-------|------|-------|
 | **Docker Hub** | [`keefshape/iptvtunerr`](https://hub.docker.com/r/keefshape/iptvtunerr) | `latest`, `vX.Y.Z`, `sha-*` | Primary public registry |
 | **GHCR** | [`ghcr.io/snapetech/iptvtunerr`](https://ghcr.io/snapetech/iptvtunerr) | `latest`, `vX.Y.Z`, `sha-*` | GitHub Container Registry |
-| **Binaries** | [GitHub Releases](https://github.com/snapetech/iptvtunerr/releases) | per tag | Linux / macOS / Windows · amd64 + arm64 |
+| **Binaries** | [GitHub Releases](https://github.com/snapetech/iptvtunerr/releases) | per tag | Linux / macOS / Windows · amd64 + arm64, plus Linux arm/v7 and Windows arm64 where supported |
 
 ```bash
 # Docker Hub
@@ -36,7 +36,7 @@ docker pull keefshape/iptvtunerr:latest
 docker pull ghcr.io/snapetech/iptvtunerr:latest
 ```
 
-Images are multi-arch (`linux/amd64`, `linux/arm64`). `latest` tracks `main`; versioned tags are cut from `v*` git tags alongside binary release archives.
+Images are multi-arch (`linux/amd64`, `linux/arm64`, `linux/arm/v7`). `latest` tracks `main`; versioned tags are cut from `v*` git tags alongside binary release archives.
 
 ---
 
@@ -137,6 +137,58 @@ These two capabilities run from the same process. They can be used independently
 
 ---
 
+## Channel Intelligence
+
+IPTV Tunerr is starting to expose the intelligence it already uses internally.
+
+You can now generate a per-channel health report that scores:
+- guide confidence
+- stream resilience
+- backup-stream depth
+- next actions to improve weak channels
+
+Two entry points:
+
+```bash
+# offline / operator report
+iptv-tunerr channel-report -catalog ./catalog.json
+
+# include XMLTV match provenance too
+iptv-tunerr channel-report -catalog ./catalog.json -xmltv http://example/xmltv.xml -aliases ./aliases.json
+```
+
+```bash
+# live server endpoint
+curl -s http://127.0.0.1:5004/channels/report.json | jq
+```
+
+When XMLTV is supplied, the report also shows whether a channel matched by:
+- exact `tvg-id`
+- alias override
+- normalized-name repair
+- or not at all
+
+This is the first foundation step toward a larger “live TV intelligence layer”:
+- Channel DNA
+- Autopilot stream selection
+- guide confidence policies
+- saved lineup recipes
+- Ghost Hunter recovery
+- catch-up capsules
+
+Roadmap: [docs/epics/EPIC-live-tv-intelligence.md](docs/epics/EPIC-live-tv-intelligence.md)
+
+You can also use that intelligence to shape lineups:
+
+```bash
+IPTV_TUNERR_LINEUP_RECIPE=high_confidence  # keep only the strongest guide-ready channels
+IPTV_TUNERR_LINEUP_RECIPE=balanced         # rank by combined score
+IPTV_TUNERR_LINEUP_RECIPE=guide_first      # rank by guide confidence first
+IPTV_TUNERR_LINEUP_RECIPE=resilient        # rank by backup-stream resilience first
+```
+
+---
+
 ## Two Setup Paths (Registration)
 
 How you connect IPTV Tunerr to your media server:
@@ -217,6 +269,7 @@ Config reference: [`docs/reference/testing-and-supervisor-config.md`](docs/refer
 | `index` | Fetch provider data and write `catalog.json` |
 | `probe` | Test and rank provider hosts |
 | `supervise` | Run multiple child tuner instances from a JSON config |
+| `channel-report` | Score channels by guide confidence, stream resilience, and EPG match quality |
 | `epg-link-report` | Report EPG coverage and unmatched channels |
 | `mount` | Mount VODFS (Linux only) |
 | `plex-vod-register` | Create or reuse Plex VOD libraries for a VODFS mount |

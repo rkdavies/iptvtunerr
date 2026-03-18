@@ -33,6 +33,7 @@ import (
 	"time"
 
 	"github.com/snapetech/iptvtunerr/internal/catalog"
+	"github.com/snapetech/iptvtunerr/internal/channelreport"
 	"github.com/snapetech/iptvtunerr/internal/config"
 	"github.com/snapetech/iptvtunerr/internal/emby"
 	"github.com/snapetech/iptvtunerr/internal/epglink"
@@ -622,6 +623,12 @@ func main() {
 	epgLinkOut := epgLinkReportCmd.String("out", "", "Optional full JSON report output path")
 	epgLinkUnmatchedOut := epgLinkReportCmd.String("unmatched-out", "", "Optional unmatched-only JSON output path")
 
+	channelReportCmd := flag.NewFlagSet("channel-report", flag.ExitOnError)
+	channelReportCatalog := channelReportCmd.String("catalog", "", "Input catalog.json (default: IPTV_TUNERR_CATALOG)")
+	channelReportXMLTV := channelReportCmd.String("xmltv", "", "Optional XMLTV file path or http(s) URL to enrich report with exact/alias/name match details")
+	channelReportAliases := channelReportCmd.String("aliases", "", "Optional alias override JSON (name_to_xmltv_id map)")
+	channelReportOut := channelReportCmd.String("out", "", "Optional JSON report output path (default: stdout)")
+
 	if len(os.Args) < 2 {
 		fmt.Fprintf(os.Stderr, "iptv-tunerr %s — live TV streaming + XMLTV guide for Plex, Emby, Jellyfin\n\n", Version)
 		fmt.Fprintf(os.Stderr, "Streaming: HDHomeRun-compatible tuner endpoints backed by M3U/Xtream with optional transcode.\n")
@@ -634,6 +641,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "  probe  Test and rank provider hosts (OK / Cloudflare / fail)\n")
 		fmt.Fprintf(os.Stderr, "  supervise  Run multiple child tuner+guide instances from one JSON config (multi-DVR)\n\n")
 		fmt.Fprintf(os.Stderr, "Guide/EPG:\n")
+		fmt.Fprintf(os.Stderr, "  channel-report   Channel intelligence report: score stream resilience + guide confidence\n")
 		fmt.Fprintf(os.Stderr, "  epg-link-report  Coverage report: which channels are EPG-linked vs unlinked, and by what match\n\n")
 		fmt.Fprintf(os.Stderr, "VOD (Linux):\n")
 		fmt.Fprintf(os.Stderr, "  mount            Mount VOD catalog as a browsable filesystem (FUSE)\n")
@@ -1656,6 +1664,61 @@ func main() {
 				os.Exit(1)
 			}
 			log.Printf("Wrote unmatched list: %s", p)
+		}
+
+	case "channel-report":
+		_ = channelReportCmd.Parse(os.Args[2:])
+		path := strings.TrimSpace(*channelReportCatalog)
+		if path == "" {
+			path = cfg.CatalogPath
+		}
+		c := catalog.New()
+		if err := c.Load(path); err != nil {
+			log.Printf("Load catalog %s: %v", path, err)
+			os.Exit(1)
+		}
+		live := c.SnapshotLive()
+		rep := channelreport.Build(live)
+		xmltvRef := strings.TrimSpace(*channelReportXMLTV)
+		if xmltvRef != "" {
+			xmltvR, err := openFileOrURL(xmltvRef)
+			if err != nil {
+				log.Printf("Open XMLTV %s: %v", xmltvRef, err)
+				os.Exit(1)
+			}
+			xmltvChans, err := epglink.ParseXMLTVChannels(xmltvR)
+			_ = xmltvR.Close()
+			if err != nil {
+				log.Printf("Parse XMLTV channels: %v", err)
+				os.Exit(1)
+			}
+			aliases := epglink.AliasOverrides{NameToXMLTVID: map[string]string{}}
+			if p := strings.TrimSpace(*channelReportAliases); p != "" {
+				aliasR, err := openFileOrURL(p)
+				if err != nil {
+					log.Printf("Open aliases %s: %v", p, err)
+					os.Exit(1)
+				}
+				aliases, err = epglink.LoadAliasOverrides(aliasR)
+				_ = aliasR.Close()
+				if err != nil {
+					log.Printf("Parse aliases: %v", err)
+					os.Exit(1)
+				}
+			}
+			matchRep := epglink.MatchLiveChannels(live, xmltvChans, aliases)
+			channelreport.AttachEPGMatchReport(&rep, matchRep)
+			log.Print(matchRep.SummaryString())
+		}
+		data, _ := json.MarshalIndent(rep, "", "  ")
+		if p := strings.TrimSpace(*channelReportOut); p != "" {
+			if err := os.WriteFile(p, data, 0o600); err != nil {
+				log.Printf("Write channel report %s: %v", p, err)
+				os.Exit(1)
+			}
+			log.Printf("Wrote channel report: %s", p)
+		} else {
+			fmt.Println(string(data))
 		}
 
 	default:

@@ -23,6 +23,22 @@ Append-only. One entry per completed task.
 ## Entries
 
 - Date: 2026-03-18
+  Title: Start Live TV Intelligence with channel health and EPG provenance reports
+  Summary:
+    - Added a new channel intelligence foundation: `iptv-tunerr channel-report` and `/channels/report.json` now score channels by guide confidence, stream resilience, and actionable next steps.
+    - Wired optional XMLTV enrichment into the report so operators can see whether guide success comes from exact `tvg-id` matches, alias overrides, normalized-name repairs, or no deterministic match at all.
+    - Added early intelligence-driven lineup recipes (`high_confidence`, `balanced`, `guide_first`, `resilient`) and documented the broader product direction in `docs/epics/EPIC-live-tv-intelligence.md` so IPTV Tunerr starts behaving like a live-TV intelligence layer rather than only a tuner bridge.
+  Verification:
+    - `./scripts/verify`
+    - `go test ./internal/channelreport ./internal/tuner ./cmd/iptv-tunerr`
+  Notes:
+    - This is the foundation slice only. Channel DNA, Autopilot, lineup recipes, Ghost Hunter, and catch-up capsules remain explicitly planned multi-PR work.
+  Opportunities filed:
+    - none
+  Links:
+    - internal/channelreport/report.go, internal/tuner/server.go, cmd/iptv-tunerr/main.go, docs/epics/EPIC-live-tv-intelligence.md, README.md
+
+- Date: 2026-03-18
   Title: Expand Docker image matrix to linux armv7
   Summary:
     - Extended `.github/workflows/docker.yml` so registry publishes now target `linux/amd64`, `linux/arm64`, and `linux/arm/v7`.

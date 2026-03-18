@@ -2,11 +2,22 @@
 
 <!-- Update at session start and when focus changes. -->
 
-**Goal:** Completed on 2026-03-18: extend the container image matrix to every Linux platform we reasonably support in Docker (`linux/amd64`, `linux/arm64`, `linux/arm/v7`) and cut the next release tag so the registry build publishes it.
+**Goal:** Start the new Live TV Intelligence product track: map the multi-PR roadmap, then ship the first visible foundation feature so IPTV Tunerr feels like an intelligent control plane instead of only a tuner bridge.
 
-**Scope:** In: Docker workflow matrix expansion, Dockerfile `GOARM` handling for `arm/v7`, docs alignment, memory-bank updates, local verify, and next tag push. Out: non-Linux container targets, hardware-accelerated ffmpeg packaging, or broader platform support beyond current Go/ffmpeg expectations.
+**Scope:** In: roadmap/epic documentation, channel intelligence reporting (`channel-report` + `/channels/report.json`), EPG match provenance visibility, README/features/reference/changelog updates, memory-bank updates, local verification. Out: full Channel DNA, Autopilot, lineup recipes, Ghost Hunter, and catch-up capsules implementation in one patch.
 
 **Last updated:** 2026-03-18
+
+**Current focus shift (Live TV Intelligence foundation, 2026-03-18):**
+- User asked for the “Pop” pass: identify the biggest user-wowing opportunities, map them, and start implementation immediately.
+- Product direction captured in `docs/epics/EPIC-live-tv-intelligence.md`.
+- Shipping foundation in this session:
+  1. `channel-report` CLI for per-channel score/tier/action reporting.
+  2. `/channels/report.json` live endpoint for the same intelligence over HTTP.
+  3. Report summary/opportunity rollups so weak channels are actionable, not just present.
+  4. Optional XMLTV-enriched provenance so tester feedback like “no tvg-id/xmltv matches” is visible as exact match vs alias/name repair vs unmatched.
+  5. Intelligence-driven lineup recipes via `IPTV_TUNERR_LINEUP_RECIPE=high_confidence|balanced|guide_first|resilient`.
+  6. README/features/reference/changelog updates so this becomes part of the product story, not just an internal tool.
 
 **Current focus shift (Docker image matrix expansion, 2026-03-18):**
 - Binary releases were expanded first, but container images were still limited to `linux/amd64` and `linux/arm64`.

@@ -169,6 +169,36 @@ Use for:
 - generating a review queue for the unlinked tail
 - iterating alias mappings safely (report-only, no runtime mutation)
 
+## `iptv-tunerr channel-report`
+
+Generate a channel intelligence report for the current lineup.
+
+The report scores each channel on:
+- guide confidence
+- stream resilience
+- backup stream depth
+- actionable next steps
+
+Optional XMLTV enrichment adds EPG match provenance:
+- exact `tvg-id`
+- alias override
+- normalized exact-name repair
+- unmatched
+
+Common flags:
+- `-catalog`
+- `-xmltv` (optional file path or `http(s)` URL)
+- `-aliases` (optional JSON alias override file)
+- `-out` (optional JSON output file; otherwise stdout)
+
+Also available live over HTTP:
+- `GET /channels/report.json`
+
+Use for:
+- spotting channels that are present but operationally weak
+- confirming whether EPG success is coming from exact `tvg-id` matches or repairs
+- building a prioritized cleanup queue for aliases, backup streams, and stable guide numbers
+
 ## `iptv-tunerr probe`
 
 Probe provider URLs and print ranked results (best host first).
@@ -284,6 +314,11 @@ Probe method:
 - `IPTV_TUNERR_TUNER_COUNT`
 - `IPTV_TUNERR_LINEUP_MAX_CHANNELS`
 - `IPTV_TUNERR_GUIDE_NUMBER_OFFSET`
+- `IPTV_TUNERR_LINEUP_RECIPE` — intelligence-driven lineup shaping:
+  - `high_confidence` = keep only channels with strong guide-confidence signals
+  - `balanced` = rank by combined guide + stream score
+  - `guide_first` = rank by guide confidence before stream resilience
+  - `resilient` = rank by backup-stream resilience before guide score
 
 `IPTV_TUNERR_GUIDE_NUMBER_OFFSET`:
 - adds a per-instance channel/guide ID offset

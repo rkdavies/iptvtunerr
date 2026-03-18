@@ -53,6 +53,34 @@ func TestServer_healthz(t *testing.T) {
 	}
 }
 
+func TestServer_channelReport(t *testing.T) {
+	s := &Server{LineupMaxChannels: NoLineupCap}
+	s.UpdateChannels([]catalog.LiveChannel{
+		{ChannelID: "1", GuideNumber: "101", GuideName: "FOX News", TVGID: "foxnews.us", EPGLinked: true, StreamURL: "http://a/1", StreamURLs: []string{"http://a/1", "http://b/1"}},
+	})
+	req := httptest.NewRequest(http.MethodGet, "/channels/report.json", nil)
+	w := httptest.NewRecorder()
+	s.serveChannelReport().ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status=%d want 200", w.Code)
+	}
+	var body struct {
+		Summary struct {
+			TotalChannels int `json:"total_channels"`
+		} `json:"summary"`
+		Channels []map[string]any `json:"channels"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if body.Summary.TotalChannels != 1 {
+		t.Fatalf("total=%d want 1", body.Summary.TotalChannels)
+	}
+	if len(body.Channels) != 1 {
+		t.Fatalf("channels len=%d want 1", len(body.Channels))
+	}
+}
+
 func TestUpdateChannels_capsLineup(t *testing.T) {
 	// Plex DVR fails to save lineup when channel count exceeds ~480. UpdateChannels must cap.
 	live := make([]catalog.LiveChannel, 500)
@@ -128,6 +156,40 @@ func TestApplyLineupPreCapFilters_dropMusicHeuristic(t *testing.T) {
 	}
 	if got[0].GuideName != "CBC Toronto" || got[1].GuideName != "Sportsnet" {
 		t.Fatalf("unexpected filtered channels: %+v", got)
+	}
+}
+
+func TestApplyLineupPreCapFilters_lineupRecipeHighConfidence(t *testing.T) {
+	t.Setenv("IPTV_TUNERR_LINEUP_DROP_MUSIC", "")
+	t.Setenv("IPTV_TUNERR_LINEUP_EXCLUDE_REGEX", "")
+	t.Setenv("IPTV_TUNERR_LINEUP_RECIPE", "high_confidence")
+	in := []catalog.LiveChannel{
+		{ChannelID: "1", GuideNumber: "101", GuideName: "FOX News", TVGID: "foxnews.us", EPGLinked: true, StreamURL: "http://a/1", StreamURLs: []string{"http://a/1", "http://b/1"}},
+		{ChannelID: "2", GuideName: "Mystery Feed", StreamURL: "http://a/2", StreamURLs: []string{"http://a/2"}},
+	}
+	out := applyLineupPreCapFilters(in)
+	if len(out) != 1 {
+		t.Fatalf("len=%d want 1", len(out))
+	}
+	if out[0].ChannelID != "1" {
+		t.Fatalf("kept channel=%q want 1", out[0].ChannelID)
+	}
+}
+
+func TestApplyLineupPreCapFilters_lineupRecipeResilient(t *testing.T) {
+	t.Setenv("IPTV_TUNERR_LINEUP_DROP_MUSIC", "")
+	t.Setenv("IPTV_TUNERR_LINEUP_EXCLUDE_REGEX", "")
+	t.Setenv("IPTV_TUNERR_LINEUP_RECIPE", "resilient")
+	in := []catalog.LiveChannel{
+		{ChannelID: "1", GuideName: "Single URL", StreamURL: "http://a/1", StreamURLs: []string{"http://a/1"}},
+		{ChannelID: "2", GuideName: "With Backup", StreamURL: "http://a/2", StreamURLs: []string{"http://a/2", "http://b/2"}},
+	}
+	out := applyLineupPreCapFilters(in)
+	if len(out) != 2 {
+		t.Fatalf("len=%d want 2", len(out))
+	}
+	if out[0].ChannelID != "2" {
+		t.Fatalf("first channel=%q want 2", out[0].ChannelID)
 	}
 }
 

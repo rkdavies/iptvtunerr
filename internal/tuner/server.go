@@ -17,6 +17,7 @@ import (
 	"unicode"
 
 	"github.com/snapetech/iptvtunerr/internal/catalog"
+	"github.com/snapetech/iptvtunerr/internal/channelreport"
 	"github.com/snapetech/iptvtunerr/internal/httpclient"
 )
 
@@ -185,8 +186,86 @@ func applyLineupPreCapFilters(live []catalog.LiveChannel) []catalog.LiveChannel 
 	if len(out) != before {
 		// Continue with optional wizard-shaping reordering before cap.
 	}
+	out = applyLineupRecipe(out)
 	out = applyLineupWizardShape(out)
 	out = applyLineupShard(out)
+	return out
+}
+
+func applyLineupRecipe(live []catalog.LiveChannel) []catalog.LiveChannel {
+	recipe := strings.ToLower(strings.TrimSpace(os.Getenv("IPTV_TUNERR_LINEUP_RECIPE")))
+	if recipe == "" || recipe == "off" || recipe == "none" || len(live) == 0 {
+		return live
+	}
+	type ranked struct {
+		ch     catalog.LiveChannel
+		score  int
+		guide  int
+		stream int
+		idx    int
+	}
+	rows := make([]ranked, 0, len(live))
+	for i, ch := range live {
+		rows = append(rows, ranked{
+			ch:     ch,
+			score:  channelreport.Score(ch),
+			guide:  channelreport.GuideConfidence(ch),
+			stream: channelreport.StreamResilience(ch),
+			idx:    i,
+		})
+	}
+
+	filtered := rows[:0]
+	switch recipe {
+	case "high_confidence":
+		for _, row := range rows {
+			if row.guide >= 40 {
+				filtered = append(filtered, row)
+			}
+		}
+		if len(filtered) > 0 {
+			rows = filtered
+		}
+	case "resilient":
+		// Reordering only; keep full set.
+	case "balanced", "guide_first":
+		// Reordering only; keep full set.
+	default:
+		log.Printf("Lineup recipe ignored: unknown recipe=%q", recipe)
+		return live
+	}
+
+	sort.SliceStable(rows, func(i, j int) bool {
+		switch recipe {
+		case "resilient":
+			if rows[i].stream == rows[j].stream {
+				if rows[i].score == rows[j].score {
+					return rows[i].idx < rows[j].idx
+				}
+				return rows[i].score > rows[j].score
+			}
+			return rows[i].stream > rows[j].stream
+		case "guide_first":
+			if rows[i].guide == rows[j].guide {
+				if rows[i].score == rows[j].score {
+					return rows[i].idx < rows[j].idx
+				}
+				return rows[i].score > rows[j].score
+			}
+			return rows[i].guide > rows[j].guide
+		default: // balanced, high_confidence
+			if rows[i].score == rows[j].score {
+				return rows[i].idx < rows[j].idx
+			}
+			return rows[i].score > rows[j].score
+		}
+	})
+
+	out := make([]catalog.LiveChannel, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, row.ch)
+	}
+	log.Printf("Lineup recipe applied: recipe=%s kept=%d/%d", recipe, len(out), len(live))
 	return out
 }
 
@@ -677,6 +756,7 @@ func (s *Server) Run(ctx context.Context) error {
 	mux.Handle("/live.m3u", m3uServe)
 	mux.Handle("/stream/", gateway)
 	mux.Handle("/healthz", s.serveHealth())
+	mux.Handle("/channels/report.json", s.serveChannelReport())
 
 	srv := &http.Server{Addr: addr, Handler: logRequests(mux)}
 
@@ -770,6 +850,19 @@ func (s *Server) serveHealth() http.Handler {
 			"channels":     count,
 			"last_refresh": lastRefresh.Format(time.RFC3339),
 		})
+		_, _ = w.Write(body)
+	})
+}
+
+func (s *Server) serveChannelReport() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		rep := channelreport.Build(s.Channels)
+		body, err := json.MarshalIndent(rep, "", "  ")
+		if err != nil {
+			http.Error(w, `{"error":"encode channel report"}`, http.StatusInternalServerError)
+			return
+		}
 		_, _ = w.Write(body)
 	})
 }
