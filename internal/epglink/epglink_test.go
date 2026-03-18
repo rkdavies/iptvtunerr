@@ -97,3 +97,28 @@ func TestApplyDeterministicMatches(t *testing.T) {
 		t.Fatalf("channel 3 unexpectedly linked: %+v", live[2])
 	}
 }
+
+func TestApplyDeterministicRepairs(t *testing.T) {
+	live := []catalog.LiveChannel{
+		{ChannelID: "1", GuideName: "FOX News Channel US", TVGID: "wrong.id", EPGLinked: true},
+		{ChannelID: "2", GuideName: "Nick Junior Canada"},
+		{ChannelID: "3", GuideName: "CTV Regina", TVGID: "ctvregina.ca", EPGLinked: true},
+	}
+	rep := Report{
+		Rows: []ChannelMatch{
+			{ChannelID: "1", Matched: true, MatchedXMLTV: "foxnews.us", Method: MatchNormalizedNameExact},
+			{ChannelID: "2", Matched: true, MatchedXMLTV: "nickjr.ca", Method: MatchAliasExact},
+			{ChannelID: "3", Matched: true, MatchedXMLTV: "ctvregina.ca", Method: MatchTVGIDExact},
+		},
+	}
+	got := ApplyDeterministicRepairs(live, rep)
+	if got.Repaired != 1 || got.Applied != 1 || got.AlreadyLinked != 1 {
+		t.Fatalf("unexpected repair result: %+v", got)
+	}
+	if live[0].TVGID != "foxnews.us" || !live[0].EPGLinked {
+		t.Fatalf("channel 1 not repaired: %+v", live[0])
+	}
+	if live[1].TVGID != "nickjr.ca" || !live[1].EPGLinked {
+		t.Fatalf("channel 2 not linked: %+v", live[1])
+	}
+}

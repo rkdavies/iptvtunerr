@@ -42,7 +42,7 @@ See also:
 |---------|-------------|
 | **`discover.json`** | HDHR discovery endpoint (Plex-compatible). |
 | **`lineup.json` / `lineup_status.json`** | Tuner channel lineup and status endpoints. |
-| **`guide.xml`** | Placeholder or remapped external XMLTV guide output. |
+| **`guide.xml`** | Layered XMLTV guide output (provider `xmltv.php` > external XMLTV > placeholder fallback). |
 | **`live.m3u`** | Live channel M3U export. |
 | **`/stream/<id>`** | Stream gateway with provider auth/failover and tuner count limiting. |
 | **Tuner count limit** | Configurable concurrent streams, HDHR-style “all tuners in use” behavior. |
@@ -67,6 +67,8 @@ The guide pipeline merges three sources in priority order per channel: provider 
 |---------|-------------|
 | **Provider EPG via `xmltv.php`** | Fetches EPG directly from Xtream provider using existing credentials (`IPTV_TUNERR_PROVIDER_EPG_ENABLED`). No third-party EPG source required for Xtream providers. |
 | **External XMLTV fetch/remap** | Fetch external XMLTV, filter to current lineup, remap programme channel IDs to local guide numbers. Gap-fills provider EPG for uncovered time windows. |
+| **Deterministic runtime EPG repair** | During catalog build, channels can have missing/wrong `TVGID`s repaired from provider/external XMLTV channel metadata before `LIVE_EPG_ONLY` filtering. |
+| **Alias override source** | Optional alias file/URL (`IPTV_TUNERR_XMLTV_ALIASES`) supplies manual channel-name to XMLTV-ID mappings for long-tail repairs. |
 | **Placeholder XMLTV** | Valid XMLTV output always available — per-channel fallback when neither provider nor external has data. |
 | **Background refresh** | Guide cache refreshed by background goroutine on TTL tick. First refresh is synchronous (cache warm before server starts). Stale cache preserved on error. |
 | **Language preference normalization** | Prefer selected language variants (for example `en,eng`) across all sources. |

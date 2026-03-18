@@ -23,6 +23,22 @@ Append-only. One entry per completed task.
 ## Entries
 
 - Date: 2026-03-18
+  Title: Runtime EPG repair from provider/external XMLTV metadata
+  Summary:
+    - Integrated deterministic EPG matching into catalog build so live channels can have missing or incorrect `TVGID`s repaired from provider `xmltv.php` metadata first and external XMLTV metadata second, before `LIVE_EPG_ONLY` filtering runs.
+    - Added `IPTV_TUNERR_XMLTV_ALIASES` and `IPTV_TUNERR_XMLTV_MATCH_ENABLE`, plus an example alias JSON file and updated env/k8s examples/docs to make the external XMLTV + alias source explicit.
+    - Fixed the `run` path to carry forward the provider entry actually used during indexing so the server's provider EPG fetch can stay aligned with the chosen provider source instead of blindly falling back to the primary config entry.
+    - Added tests for deterministic repair, external repair behavior, provider-over-external precedence, and config parsing; updated docs that still described guide handling as "placeholder vs external only."
+  Verification:
+    - `./scripts/verify`
+  Notes:
+    - Runtime repair remains deterministic only (`tvg-id`, alias exact, normalized exact-name). Fuzzy matching and persistent match storage are still not implemented.
+  Opportunities filed:
+    - none
+  Links:
+    - cmd/iptv-tunerr/main.go, cmd/iptv-tunerr/main_test.go, internal/epglink/epglink.go, internal/tuner/epg_pipeline.go, .env.example, k8s/xmltv-aliases.example.json
+
+- Date: 2026-03-18
   Title: Learn provider concurrency caps from 423/429/458 live-stream failures
   Summary:
     - Updated the tuner gateway to classify upstream `423`, `429`, and `458` playlist failures as provider concurrency-limit errors instead of collapsing them into a generic `502`.

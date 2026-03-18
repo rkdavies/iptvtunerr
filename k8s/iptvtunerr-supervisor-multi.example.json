@@ -28,9 +28,11 @@
       "env": {
         "IPTV_TUNERR_M3U_URL": "http://iptv-m3u-server.plex.svc/live.m3u",
         "IPTV_TUNERR_XMLTV_URL": "http://iptv-m3u-server.plex.svc/xmltv.xml",
+        "IPTV_TUNERR_XMLTV_ALIASES": "/data/xmltv-aliases.json",
         "IPTV_TUNERR_BASE_URL": "http://iptvtunerr-hdhr.plex.home",
         "IPTV_TUNERR_DEVICE_ID": "hdhrbcast",
         "IPTV_TUNERR_FRIENDLY_NAME": "iptvTunerr-HDHR",
+        "IPTV_TUNERR_XMLTV_MATCH_ENABLE": "true",
         "IPTV_TUNERR_LIVE_EPG_ONLY": "true",
         "IPTV_TUNERR_EPG_PRUNE_UNLINKED": "true",
         "IPTV_TUNERR_STREAM_TRANSCODE": "on",

@@ -75,10 +75,17 @@ If the primary URL fails, it falls back to the next URL automatically. Cloudflar
 
 ### 4. Guide handling
 
-`/guide.xml` is served in XMLTV format. Two modes:
+`/guide.xml` is served in XMLTV format from a layered pipeline:
 
-- **Placeholder (default):** A minimal XMLTV document listing channel stubs with no programme data. Plex can still discover channels; the guide shows as empty.
-- **External XMLTV:** If `IPTV_TUNERR_XMLTV_URL` is set, the app fetches the upstream XMLTV, filters it to channels present in the catalog (by `tvg-id`), remaps channel IDs to local guide numbers, optionally normalizes language/script, and caches the result. This is what Plex uses to populate guide listings.
+- **Provider XMLTV (`xmltv.php`)** when provider credentials/base are available
+- **External XMLTV** from `IPTV_TUNERR_XMLTV_URL`
+- **Placeholder fallback** when neither source has programme data for a channel
+
+Before `LIVE_EPG_ONLY` filtering is applied during catalog build, IPTV Tunerr can also
+repair or assign channel `TVGID`s deterministically from provider/external XMLTV
+channel metadata (exact `tvg-id`, alias override, normalized exact-name match). That
+lets channels reach real programme data even when the source M3U/API supplied a bad or
+missing ID.
 
 ---
 

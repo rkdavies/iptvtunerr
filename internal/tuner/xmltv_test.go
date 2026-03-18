@@ -285,3 +285,79 @@ func TestXMLTV_externalSourceRemap_NonLatinTitleFallbackToChannel(t *testing.T) 
 		t.Fatalf("desc should remain untouched, got: %s", body)
 	}
 }
+
+func TestXMLTV_buildMergedEPG_UsesRealProgrammeBlocksNotPlaceholder(t *testing.T) {
+	providerXML := `<?xml version="1.0" encoding="utf-8"?>
+<tv>
+  <channel id="foxnews.us"><display-name>FOX News Channel</display-name></channel>
+  <programme start="20260318080000 +0000" stop="20260318090000 +0000" channel="foxnews.us">
+    <title>Fox and Friends</title>
+    <desc>Morning news and interviews.</desc>
+  </programme>
+  <programme start="20260318090000 +0000" stop="20260318100000 +0000" channel="foxnews.us">
+    <title>America Reports</title>
+    <desc>Breaking news coverage.</desc>
+  </programme>
+</tv>`
+	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/xml")
+		_, _ = w.Write([]byte(providerXML))
+	}))
+	defer provider.Close()
+
+	x := &XMLTV{
+		Channels: []catalog.LiveChannel{
+			{GuideNumber: "42", GuideName: "FOX News Channel US", TVGID: "foxnews.us", EPGLinked: true},
+		},
+		ProviderBaseURL:    provider.URL,
+		ProviderUser:       "u",
+		ProviderPass:       "p",
+		ProviderEPGEnabled: true,
+		ProviderEPGTimeout: 5 * time.Second,
+	}
+	x.refresh()
+
+	req := httptest.NewRequest(http.MethodGet, "/guide.xml", nil)
+	w := httptest.NewRecorder()
+	x.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("code: %d", w.Code)
+	}
+
+	var tv struct {
+		Channels []struct {
+			ID      string `xml:"id,attr"`
+			Display string `xml:"display-name"`
+		} `xml:"channel"`
+		Programmes []struct {
+			Channel string `xml:"channel,attr"`
+			Start   string `xml:"start,attr"`
+			Stop    string `xml:"stop,attr"`
+			Title   string `xml:"title"`
+			Desc    string `xml:"desc"`
+		} `xml:"programme"`
+	}
+	if err := xml.Unmarshal(w.Body.Bytes(), &tv); err != nil {
+		t.Fatal(err)
+	}
+	if len(tv.Channels) != 1 || tv.Channels[0].ID != "42" {
+		t.Fatalf("unexpected channels: %+v", tv.Channels)
+	}
+	if len(tv.Programmes) != 2 {
+		t.Fatalf("programmes len=%d want 2 body=%s", len(tv.Programmes), w.Body.String())
+	}
+	for i, p := range tv.Programmes {
+		if p.Channel != "42" {
+			t.Fatalf("programme[%d] channel=%q want 42", i, p.Channel)
+		}
+		if p.Start == "" || p.Stop == "" {
+			t.Fatalf("programme[%d] missing start/stop: %+v", i, p)
+		}
+		if p.Title == "" || p.Desc == "" {
+			t.Fatalf("programme[%d] missing title/desc: %+v", i, p)
+		}
+		if p.Title == "FOX News Channel US" {
+			t.Fatalf("programme[%d] fell back to placeholder title: %+v", i, p)
+		}
+	}
+}

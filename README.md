@@ -126,6 +126,11 @@ Three guide sources, merged automatically in priority order — highest wins per
 
 Guide cache is pre-warmed at startup (first request is never cold). On fetch failure, stale data is served — no guide outage on transient provider errors. Language and script normalization applied across all sources (`IPTV_TUNERR_XMLTV_PREFER_LANGS`, `IPTV_TUNERR_XMLTV_PREFER_LATIN`).
 
+During catalog build, IPTV Tunerr can also repair or assign channel `TVGID`s from
+provider/external XMLTV channel metadata before `LIVE_EPG_ONLY` filtering runs. That
+uses deterministic tiers only (exact `tvg-id`, alias override, normalized exact-name
+match). Optional alias overrides come from `IPTV_TUNERR_XMLTV_ALIASES`.
+
 `epg-link-report` command: deterministic coverage report showing which channels are matched, which are unlinked, and by what mechanism.
 
 These two capabilities run from the same process. They can be used independently: point your media server at the tuner URL for streams and at a different guide source, or use IPTV Tunerr for both.

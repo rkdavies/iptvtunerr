@@ -55,6 +55,7 @@ type Report struct {
 type ApplyResult struct {
 	Applied       int            `json:"applied"`
 	AlreadyLinked int            `json:"already_linked"`
+	Repaired      int            `json:"repaired"`
 	Methods       map[string]int `json:"methods"`
 }
 
@@ -296,6 +297,44 @@ func ApplyDeterministicMatches(live []catalog.LiveChannel, rep Report) ApplyResu
 		ch.TVGID = row.MatchedXMLTV
 		ch.EPGLinked = true
 		res.Applied++
+		if row.Method != "" {
+			res.Methods[string(row.Method)]++
+		}
+	}
+	return res
+}
+
+// ApplyDeterministicRepairs updates live channels in place with high-confidence matches
+// from the report, including repairing incorrect preexisting TVGIDs.
+// Existing TVGIDs are preserved only when the current value already matches exactly.
+func ApplyDeterministicRepairs(live []catalog.LiveChannel, rep Report) ApplyResult {
+	res := ApplyResult{Methods: map[string]int{}}
+	if len(live) == 0 || len(rep.Rows) == 0 {
+		return res
+	}
+	byChannelID := make(map[string]ChannelMatch, len(rep.Rows))
+	for _, row := range rep.Rows {
+		byChannelID[row.ChannelID] = row
+	}
+	for i := range live {
+		ch := &live[i]
+		row, ok := byChannelID[ch.ChannelID]
+		if !ok || !row.Matched || strings.TrimSpace(row.MatchedXMLTV) == "" {
+			continue
+		}
+		current := strings.TrimSpace(ch.TVGID)
+		target := strings.TrimSpace(row.MatchedXMLTV)
+		if current == target && current != "" {
+			res.AlreadyLinked++
+			continue
+		}
+		if current != "" && current != target {
+			res.Repaired++
+		} else {
+			res.Applied++
+		}
+		ch.TVGID = target
+		ch.EPGLinked = true
 		if row.Method != "" {
 			res.Methods[string(row.Method)]++
 		}

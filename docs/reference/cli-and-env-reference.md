@@ -339,6 +339,8 @@ Fetches EPG directly from your IPTV provider using existing credentials. No sepa
 ### External XMLTV (tier 2)
 
 - `IPTV_TUNERR_XMLTV_URL` — external XMLTV source URL; fetched, filtered to your channels, remapped to guide numbers
+- `IPTV_TUNERR_XMLTV_ALIASES` — optional file path or `http(s)` URL for alias overrides used in deterministic EPG repair
+- `IPTV_TUNERR_XMLTV_MATCH_ENABLE` — repair/assign channel `TVGID`s from provider/external XMLTV channel metadata during catalog build (default `true`)
 - `IPTV_TUNERR_XMLTV_TIMEOUT` — fetch timeout (default `45s`)
 - `IPTV_TUNERR_XMLTV_CACHE_TTL` — refresh interval when provider EPG cache TTL is not set (default `10m`)
 - `IPTV_TUNERR_LIVE_EPG_ONLY` — only serve channels that have a `tvg-id`

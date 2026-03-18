@@ -3,8 +3,8 @@
 //
 //   - Streaming: HDHomeRun-compatible tuner endpoints (/discover.json, /lineup.json,
 //     /stream/{id}) backed by M3U/Xtream provider with optional ffmpeg transcode.
-//   - Guide/EPG: XMLTV guide at /guide.xml — built-in placeholder or external XMLTV
-//     fetched, filtered to your channels, ID-remapped, and cached.
+//   - Guide/EPG: XMLTV guide at /guide.xml — provider xmltv.php, external XMLTV,
+//     and placeholder fallback merged and cached, with deterministic TVGID repair during catalog build.
 //
 // Subcommands:
 //
@@ -259,10 +259,13 @@ func applyPlexVODLibraryPreset(plexBaseURL, plexToken string, sec *plex.LibraryS
 
 // catalogResult holds the output of fetchCatalog.
 type catalogResult struct {
-	Movies  []catalog.Movie
-	Series  []catalog.Series
-	Live    []catalog.LiveChannel
-	APIBase string // best-ranked provider base URL; empty when M3U path was used
+	Movies       []catalog.Movie
+	Series       []catalog.Series
+	Live         []catalog.LiveChannel
+	APIBase      string // best-ranked provider base URL; empty when M3U path was used
+	ProviderBase string // provider base used for XMLTV / stream metadata
+	ProviderUser string
+	ProviderPass string
 }
 
 // fetchCatalog fetches catalog data from the provider and applies configured filters.
@@ -318,6 +321,9 @@ func fetchCatalog(cfg *config.Config, m3uOverride string) (catalogResult, error)
 		if len(ranked) > 0 {
 			best := ranked[0]
 			res.APIBase = best.Entry.BaseURL
+			res.ProviderBase = best.Entry.BaseURL
+			res.ProviderUser = best.Entry.User
+			res.ProviderPass = best.Entry.Pass
 			// Collect all OK base URLs (same-cred entries first, then cross-provider) for stream failover.
 			allBases := make([]string, 0, len(ranked))
 			for _, er := range ranked {
@@ -348,6 +354,9 @@ func fetchCatalog(cfg *config.Config, m3uOverride string) (catalogResult, error)
 				m3uURL := base + "/get.php?username=" + url.QueryEscape(e.User) + "&password=" + url.QueryEscape(e.Pass) + "&type=m3u_plus&output=ts"
 				res.Movies, res.Series, res.Live, fallbackErr = indexer.ParseM3U(m3uURL, nil)
 				if fallbackErr == nil {
+					res.ProviderBase = e.BaseURL
+					res.ProviderUser = e.User
+					res.ProviderPass = e.Pass
 					log.Printf("Using get.php from %s", base)
 					break
 				}
@@ -367,6 +376,7 @@ func fetchCatalog(cfg *config.Config, m3uOverride string) (catalogResult, error)
 	// Strip catalog-time blocked stream hosts (e.g. CF CDN hostnames) before any other filter.
 	// Channels whose every URL is on a blocked host are dropped entirely.
 	res.Live = stripStreamHosts(res.Live, cfg.StripStreamHosts)
+	applyRuntimeEPGRepairs(cfg, res.Live, res.ProviderBase, res.ProviderUser, res.ProviderPass)
 
 	// Apply configured live-channel filters (applied consistently on every fetch path).
 	if cfg.LiveEPGOnly {
@@ -409,6 +419,100 @@ func catalogStats(live []catalog.LiveChannel) (epgLinked, withBackups int) {
 		}
 	}
 	return
+}
+
+func providerXMLTVURL(baseURL, user, pass string) string {
+	baseURL = strings.TrimSuffix(strings.TrimSpace(baseURL), "/")
+	user = strings.TrimSpace(user)
+	pass = strings.TrimSpace(pass)
+	if baseURL == "" || user == "" || pass == "" {
+		return ""
+	}
+	return baseURL + "/xmltv.php?username=" + url.QueryEscape(user) + "&password=" + url.QueryEscape(pass)
+}
+
+func loadAliasOverrides(ref string) (epglink.AliasOverrides, error) {
+	if strings.TrimSpace(ref) == "" {
+		return epglink.AliasOverrides{NameToXMLTVID: map[string]string{}}, nil
+	}
+	r, err := openFileOrURL(ref)
+	if err != nil {
+		return epglink.AliasOverrides{}, err
+	}
+	defer r.Close()
+	return epglink.LoadAliasOverrides(r)
+}
+
+func loadXMLTVChannels(ref string) ([]epglink.XMLTVChannel, error) {
+	r, err := openFileOrURL(ref)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	return epglink.ParseXMLTVChannels(r)
+}
+
+func unresolvedLiveChannels(live []catalog.LiveChannel, protected map[string]bool) []catalog.LiveChannel {
+	out := make([]catalog.LiveChannel, 0, len(live))
+	for _, ch := range live {
+		if protected[ch.ChannelID] {
+			continue
+		}
+		out = append(out, ch)
+	}
+	return out
+}
+
+func applyRuntimeEPGRepairs(cfg *config.Config, live []catalog.LiveChannel, providerBase, providerUser, providerPass string) {
+	if cfg == nil || !cfg.XMLTVMatchEnable || len(live) == 0 {
+		return
+	}
+	aliases, err := loadAliasOverrides(cfg.XMLTVAliases)
+	if err != nil {
+		log.Printf("EPG alias overrides disabled: %v", err)
+		aliases = epglink.AliasOverrides{NameToXMLTVID: map[string]string{}}
+	}
+	type xmltvSource struct {
+		name     string
+		ref      string
+		channels []epglink.XMLTVChannel
+	}
+	var sources []xmltvSource
+	if cfg.ProviderEPGEnabled {
+		if ref := providerXMLTVURL(providerBase, providerUser, providerPass); ref != "" {
+			if chans, err := loadXMLTVChannels(ref); err != nil {
+				log.Printf("EPG repair provider source unavailable: %v", err)
+			} else if len(chans) > 0 {
+				sources = append(sources, xmltvSource{name: "provider", ref: ref, channels: chans})
+			}
+		}
+	}
+	if ref := strings.TrimSpace(cfg.XMLTVURL); ref != "" {
+		if chans, err := loadXMLTVChannels(ref); err != nil {
+			log.Printf("EPG repair external source unavailable: %v", err)
+		} else if len(chans) > 0 {
+			sources = append(sources, xmltvSource{name: "external", ref: ref, channels: chans})
+		}
+	}
+	if len(sources) == 0 {
+		return
+	}
+	protected := make(map[string]bool, len(live))
+	for _, src := range sources {
+		candidates := unresolvedLiveChannels(live, protected)
+		if len(candidates) == 0 {
+			break
+		}
+		rep := epglink.MatchLiveChannels(candidates, src.channels, aliases)
+		apply := epglink.ApplyDeterministicRepairs(live, rep)
+		for _, row := range rep.Rows {
+			if row.Matched {
+				protected[row.ChannelID] = true
+			}
+		}
+		log.Printf("EPG repair via %s: matched=%d/%d repaired=%d applied=%d already-linked=%d ref=%s",
+			src.name, rep.Matched, rep.TotalChannels, apply.Repaired, apply.Applied, apply.AlreadyLinked, src.ref)
+	}
 }
 
 func main() {
@@ -509,7 +613,7 @@ func main() {
 	if len(os.Args) < 2 {
 		fmt.Fprintf(os.Stderr, "iptv-tunerr %s — live TV streaming + XMLTV guide for Plex, Emby, Jellyfin\n\n", Version)
 		fmt.Fprintf(os.Stderr, "Streaming: HDHomeRun-compatible tuner endpoints backed by M3U/Xtream with optional transcode.\n")
-		fmt.Fprintf(os.Stderr, "Guide/EPG: /guide.xml — built-in placeholder or external XMLTV fetched, filtered, and remapped.\n\n")
+		fmt.Fprintf(os.Stderr, "Guide/EPG: /guide.xml — provider XMLTV + external XMLTV + placeholder fallback, with deterministic TVGID repair during catalog build.\n\n")
 		fmt.Fprintf(os.Stderr, "Usage: %s <command> [flags]\n\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "Core:\n")
 		fmt.Fprintf(os.Stderr, "  run    Refresh catalog + health check + serve tuner and guide (use for systemd/containers)\n")
@@ -595,6 +699,7 @@ func main() {
 			log.Printf("Load catalog (live channels): %v; serving with no channels", err)
 		}
 		live := c.SnapshotLive()
+		applyRuntimeEPGRepairs(cfg, live, cfg.ProviderBaseURL, cfg.ProviderUser, cfg.ProviderPass)
 		log.Printf("Loaded %d live channels from %s", len(live), path)
 		serveLineupCap := cfg.LineupMaxChannels
 		if *serveMode == "easy" {
@@ -689,6 +794,7 @@ func main() {
 
 		// 1) Refresh catalog at startup unless skipped.
 		var runApiBase string // best ranked provider; used for health check URL below
+		var runProviderBase, runProviderUser, runProviderPass string
 		if !*runSkipIndex {
 			log.Print("Refreshing catalog ...")
 			res, err := fetchCatalog(cfg, "")
@@ -697,6 +803,9 @@ func main() {
 				os.Exit(1)
 			}
 			runApiBase = res.APIBase
+			runProviderBase = res.ProviderBase
+			runProviderUser = res.ProviderUser
+			runProviderPass = res.ProviderPass
 			epgLinked, withBackups := catalogStats(res.Live)
 			c := catalog.New()
 			c.ReplaceWithLive(res.Movies, res.Series, res.Live)
@@ -741,6 +850,13 @@ func main() {
 			os.Exit(1)
 		}
 		live := c.SnapshotLive()
+		applyRuntimeEPGRepairs(
+			cfg,
+			live,
+			firstNonEmpty(runProviderBase, cfg.ProviderBaseURL),
+			firstNonEmpty(runProviderUser, cfg.ProviderUser),
+			firstNonEmpty(runProviderPass, cfg.ProviderPass),
+		)
 		log.Printf("Loaded %d live channels from %s", len(live), path)
 
 		baseURL := *runBaseURL
@@ -777,9 +893,9 @@ func main() {
 			StreamBufferBytes:   cfg.StreamBufferBytes,
 			StreamTranscodeMode: cfg.StreamTranscodeMode,
 			Channels:            nil, // set by UpdateChannels
-			ProviderUser:        cfg.ProviderUser,
-			ProviderPass:        cfg.ProviderPass,
-			ProviderBaseURL:     cfg.ProviderBaseURL,
+			ProviderUser:        firstNonEmpty(runProviderUser, cfg.ProviderUser),
+			ProviderPass:        firstNonEmpty(runProviderPass, cfg.ProviderPass),
+			ProviderBaseURL:     firstNonEmpty(runProviderBase, cfg.ProviderBaseURL),
 			XMLTVSourceURL:      cfg.XMLTVURL,
 			XMLTVTimeout:        cfg.XMLTVTimeout,
 			XMLTVCacheTTL:       cfg.XMLTVCacheTTL,
@@ -1569,6 +1685,15 @@ func parseCSV(s string) []string {
 		}
 	}
 	return out
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if strings.TrimSpace(v) != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 func hostPortFromBaseURL(base string) (string, error) {

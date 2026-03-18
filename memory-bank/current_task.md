@@ -2,11 +2,21 @@
 
 <!-- Update at session start and when focus changes. -->
 
-**Goal:** Ship a new patch release containing the tester-reported concurrent-playback fix after `v0.1.4`: classify upstream `423`/`429`/`458` responses as provider concurrency limits, learn lower numeric caps when the provider advertises them, and surface a local HDHR-style capacity error instead of a generic upstream failure.
+**Goal:** Ship the live EPG hardening work: channels with bad or missing source `TVGID`s should no longer fall through to placeholder guide entries when deterministic XMLTV matches are available, and the external XMLTV/alias source should be explicit in repo examples.
 
-**Scope:** In: targeted gateway/tests/docs updates for provider concurrency-limit signaling and learned-cap clamping, local verify, git commit/tag/push for the next patch release, and memory-bank/task-history updates. Out: broad stream-sharing architecture, provider-specific scraper/login logic, or unrelated VOD/Plex library work.
+**Scope:** In: runtime deterministic EPG repair during catalog build, provider/external XMLTV source review, alias-source config wiring, docs/example updates, targeted guide-output verification, local verify, git commit/tag/push for the next patch release, and memory-bank/task-history updates. Out: fuzzy matching, persistent match DB/store, or a multi-source canonical EPG resolver.
 
 **Last updated:** 2026-03-18
+
+**Current focus shift (EPG hardening, 2026-03-18):**
+- Review found that runtime guide quality still depended mainly on source-provided `TVGID`s: if a channel had a non-empty but wrong ID, it survived `LIVE_EPG_ONLY` yet still fell through to placeholder programme entries. The deterministic linker existed only as `epg-link-report`, not as a runtime repair path.
+- Implemented in this session:
+  1. Deterministic EPG repair now runs during catalog build using provider XMLTV channel metadata first, then external XMLTV channel metadata.
+  2. Incorrect existing `TVGID`s can now be repaired, not just empty ones.
+  3. Added `IPTV_TUNERR_XMLTV_ALIASES` and `IPTV_TUNERR_XMLTV_MATCH_ENABLE` config support plus example alias JSON.
+  4. `run` now carries forward the provider entry actually used for indexing so guide `xmltv.php` fetches can stay aligned with the chosen provider source.
+  5. Updated architecture/reference/examples to reflect the actual three-layer guide pipeline and runtime repair behavior.
+  6. Added end-to-end guide-output assertions proving repaired channels emit real programme blocks with `start`/`stop`, title, and description instead of placeholder channel-name rows.
 
 **Current focus shift (release build, 2026-03-18 late):**
 - The provider-capacity follow-up patch is implemented in the working tree. Remaining work is release hygiene: verify, commit, tag, and push the next patch release so CI publishes binaries and container images.

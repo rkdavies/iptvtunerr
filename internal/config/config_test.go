@@ -307,14 +307,25 @@ func TestXMLTVEnv(t *testing.T) {
 	if c.XMLTVURL != "" {
 		t.Errorf("XMLTVURL default should be empty; got %q", c.XMLTVURL)
 	}
+	if !c.XMLTVMatchEnable {
+		t.Error("XMLTVMatchEnable default should be true")
+	}
 	if c.XMLTVTimeout != 45*time.Second {
 		t.Errorf("XMLTVTimeout default: got %v", c.XMLTVTimeout)
 	}
 	os.Setenv("IPTV_TUNERR_XMLTV_URL", "http://example/xmltv.xml")
+	os.Setenv("IPTV_TUNERR_XMLTV_ALIASES", "http://example/aliases.json")
+	os.Setenv("IPTV_TUNERR_XMLTV_MATCH_ENABLE", "false")
 	os.Setenv("IPTV_TUNERR_XMLTV_TIMEOUT", "9s")
 	c = Load()
 	if c.XMLTVURL != "http://example/xmltv.xml" {
 		t.Errorf("XMLTVURL: got %q", c.XMLTVURL)
+	}
+	if c.XMLTVAliases != "http://example/aliases.json" {
+		t.Errorf("XMLTVAliases: got %q", c.XMLTVAliases)
+	}
+	if c.XMLTVMatchEnable {
+		t.Error("XMLTVMatchEnable should be false")
 	}
 	if c.XMLTVTimeout != 9*time.Second {
 		t.Errorf("XMLTVTimeout: got %v", c.XMLTVTimeout)
