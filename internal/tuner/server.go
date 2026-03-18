@@ -767,6 +767,7 @@ func (s *Server) Run(ctx context.Context) error {
 	mux.Handle("/healthz", s.serveHealth())
 	mux.Handle("/channels/report.json", s.serveChannelReport())
 	mux.Handle("/plex/ghost-report.json", s.serveGhostHunterReport())
+	mux.Handle("/provider/profile.json", s.serveProviderProfile())
 
 	srv := &http.Server{Addr: addr, Handler: logRequests(mux)}
 
@@ -899,6 +900,22 @@ func (s *Server) serveGhostHunterReport() http.Handler {
 		body, err := json.MarshalIndent(rep, "", "  ")
 		if err != nil {
 			http.Error(w, `{"error":"encode ghost report"}`, http.StatusInternalServerError)
+			return
+		}
+		_, _ = w.Write(body)
+	})
+}
+
+func (s *Server) serveProviderProfile() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if s.gateway == nil {
+			http.Error(w, `{"error":"gateway unavailable"}`, http.StatusServiceUnavailable)
+			return
+		}
+		body, err := json.MarshalIndent(s.gateway.ProviderBehaviorProfile(), "", "  ")
+		if err != nil {
+			http.Error(w, `{"error":"encode provider profile"}`, http.StatusInternalServerError)
 			return
 		}
 		_, _ = w.Write(body)

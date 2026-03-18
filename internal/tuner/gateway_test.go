@@ -169,6 +169,16 @@ func TestGateway_learnsUpstreamConcurrencyLimitAndRejectsLocally(t *testing.T) {
 	if g.learnedUpstreamLimit != 1 {
 		t.Fatalf("learnedUpstreamLimit=%d", g.learnedUpstreamLimit)
 	}
+	prof := g.ProviderBehaviorProfile()
+	if prof.ConcurrencySignalsSeen != 1 {
+		t.Fatalf("concurrency_signals_seen=%d want 1", prof.ConcurrencySignalsSeen)
+	}
+	if prof.LastConcurrencyStatus != 423 {
+		t.Fatalf("last_concurrency_status=%d want 423", prof.LastConcurrencyStatus)
+	}
+	if prof.EffectiveTunerLimit != 1 {
+		t.Fatalf("effective_tuner_limit=%d want 1", prof.EffectiveTunerLimit)
+	}
 
 	g.mu.Lock()
 	g.inUse = 1

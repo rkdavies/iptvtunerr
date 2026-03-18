@@ -81,6 +81,41 @@ func TestServer_channelReport(t *testing.T) {
 	}
 }
 
+func TestServer_providerProfile(t *testing.T) {
+	s := &Server{
+		gateway: &Gateway{
+			ProviderUser:         "user",
+			TunerCount:           4,
+			FetchCFReject:        true,
+			learnedUpstreamLimit: 2,
+			concurrencyHits:      3,
+			lastConcurrencyCode:  458,
+			lastConcurrencyBody:  "maximum 2 connections allowed",
+			cfBlockHits:          1,
+			lastCFBlockURL:       "http://provider.example/live/.../123.m3u8",
+		},
+	}
+	req := httptest.NewRequest(http.MethodGet, "/provider/profile.json", nil)
+	w := httptest.NewRecorder()
+	s.serveProviderProfile().ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status=%d want 200", w.Code)
+	}
+	var body ProviderBehaviorProfile
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if body.EffectiveTunerLimit != 2 {
+		t.Fatalf("effective_limit=%d want 2", body.EffectiveTunerLimit)
+	}
+	if body.ConcurrencySignalsSeen != 3 {
+		t.Fatalf("concurrency_signals_seen=%d want 3", body.ConcurrencySignalsSeen)
+	}
+	if body.CFBlockHits != 1 {
+		t.Fatalf("cf_block_hits=%d want 1", body.CFBlockHits)
+	}
+}
+
 func TestUpdateChannels_capsLineup(t *testing.T) {
 	// Plex DVR fails to save lineup when channel count exceeds ~480. UpdateChannels must cap.
 	live := make([]catalog.LiveChannel, 500)

@@ -60,6 +60,31 @@ type Gateway struct {
 	inUse                int
 	learnedUpstreamLimit int
 	reqSeq               uint64
+	providerStateMu      sync.Mutex
+	concurrencyHits      int
+	lastConcurrencyAt    time.Time
+	lastConcurrencyBody  string
+	lastConcurrencyCode  int
+	cfBlockHits          int
+	lastCFBlockAt        time.Time
+	lastCFBlockURL       string
+}
+
+type ProviderBehaviorProfile struct {
+	ConfiguredTunerLimit   int      `json:"configured_tuner_limit"`
+	LearnedTunerLimit      int      `json:"learned_tuner_limit"`
+	EffectiveTunerLimit    int      `json:"effective_tuner_limit"`
+	BasicAuthConfigured    bool     `json:"basic_auth_configured"`
+	ForwardedHeaders       []string `json:"forwarded_headers"`
+	FFMPEGHLSReconnect     bool     `json:"ffmpeg_hls_reconnect"`
+	FetchCFReject          bool     `json:"fetch_cf_reject"`
+	ConcurrencySignalsSeen int      `json:"concurrency_signals_seen"`
+	LastConcurrencyStatus  int      `json:"last_concurrency_status,omitempty"`
+	LastConcurrencyBody    string   `json:"last_concurrency_body,omitempty"`
+	LastConcurrencyAt      string   `json:"last_concurrency_at,omitempty"`
+	CFBlockHits            int      `json:"cf_block_hits"`
+	LastCFBlockAt          string   `json:"last_cf_block_at,omitempty"`
+	LastCFBlockURL         string   `json:"last_cf_block_url,omitempty"`
 }
 
 type gatewayReqIDKey struct{}
@@ -423,6 +448,72 @@ func (g *Gateway) effectiveTunerLimitLocked() int {
 		limit = g.learnedUpstreamLimit
 	}
 	return limit
+}
+
+func (g *Gateway) noteUpstreamConcurrencySignal(status int, preview string) {
+	if g == nil {
+		return
+	}
+	g.providerStateMu.Lock()
+	defer g.providerStateMu.Unlock()
+	g.concurrencyHits++
+	g.lastConcurrencyCode = status
+	g.lastConcurrencyBody = strings.TrimSpace(preview)
+	g.lastConcurrencyAt = time.Now().UTC()
+}
+
+func (g *Gateway) noteCFBlock(segURL string) {
+	if g == nil {
+		return
+	}
+	g.providerStateMu.Lock()
+	defer g.providerStateMu.Unlock()
+	g.cfBlockHits++
+	g.lastCFBlockAt = time.Now().UTC()
+	g.lastCFBlockURL = safeurl.RedactURL(segURL)
+}
+
+func (g *Gateway) ProviderBehaviorProfile() ProviderBehaviorProfile {
+	if g == nil {
+		return ProviderBehaviorProfile{}
+	}
+	g.mu.Lock()
+	configured := g.configuredTunerLimit()
+	learned := g.learnedUpstreamLimit
+	effective := g.effectiveTunerLimitLocked()
+	g.mu.Unlock()
+
+	g.providerStateMu.Lock()
+	concurrencyHits := g.concurrencyHits
+	lastConcurrencyCode := g.lastConcurrencyCode
+	lastConcurrencyBody := g.lastConcurrencyBody
+	lastConcurrencyAt := g.lastConcurrencyAt
+	cfBlockHits := g.cfBlockHits
+	lastCFBlockAt := g.lastCFBlockAt
+	lastCFBlockURL := g.lastCFBlockURL
+	g.providerStateMu.Unlock()
+
+	prof := ProviderBehaviorProfile{
+		ConfiguredTunerLimit:   configured,
+		LearnedTunerLimit:      learned,
+		EffectiveTunerLimit:    effective,
+		BasicAuthConfigured:    strings.TrimSpace(g.ProviderUser) != "" || strings.TrimSpace(g.ProviderPass) != "",
+		ForwardedHeaders:       append([]string(nil), forwardedUpstreamHeaderNames...),
+		FFMPEGHLSReconnect:     getenvBool("IPTV_TUNERR_FFMPEG_HLS_RECONNECT", false),
+		FetchCFReject:          g.FetchCFReject,
+		ConcurrencySignalsSeen: concurrencyHits,
+		LastConcurrencyStatus:  lastConcurrencyCode,
+		LastConcurrencyBody:    lastConcurrencyBody,
+		CFBlockHits:            cfBlockHits,
+		LastCFBlockURL:         lastCFBlockURL,
+	}
+	if !lastConcurrencyAt.IsZero() {
+		prof.LastConcurrencyAt = lastConcurrencyAt.Format(time.RFC3339)
+	}
+	if !lastCFBlockAt.IsZero() {
+		prof.LastCFBlockAt = lastCFBlockAt.Format(time.RFC3339)
+	}
+	return prof
 }
 
 type cappedBodyTee struct {
@@ -1768,6 +1859,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			limited := isUpstreamConcurrencyLimit(resp.StatusCode, preview)
 			if limited {
 				upstreamConcurrencyLimited = true
+				g.noteUpstreamConcurrencySignal(resp.StatusCode, preview)
 				if learned := g.learnUpstreamConcurrencyLimit(preview); learned > 0 {
 					log.Printf("gateway: channel=%q id=%s learned upstream concurrency limit=%d from status=%d body=%q",
 						channel.GuideName, channelID, learned, resp.StatusCode, preview)
@@ -3012,6 +3104,7 @@ func (g *Gateway) relayHLSAsTS(
 				}
 				if err != nil {
 					if errors.Is(err, errCFBlock) {
+						g.noteCFBlock(segURL)
 						log.Printf("gateway:%s channel=%q id=%s CF-blocked segment rejected; aborting stream url=%s",
 							reqField, channelName, channelID, safeurl.RedactURL(segURL))
 						return err

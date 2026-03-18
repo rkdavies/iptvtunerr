@@ -226,6 +226,20 @@ Query params:
 Limit:
 - hidden Plex grabs that never appear in `/status/sessions` are not visible to Ghost Hunter; use the recovery runbook for those cases.
 
+## Provider behavior profile endpoint
+
+Runtime-only provider intelligence surface:
+- `GET /provider/profile.json`
+
+What it exposes:
+- configured tuner limit
+- learned/effective tuner limit after upstream concurrency-cap signals
+- forwarded auth-context headers (`Cookie`, `Referer`, `Origin`)
+- whether provider basic auth is configured
+- whether `IPTV_TUNERR_FFMPEG_HLS_RECONNECT` and `IPTV_TUNERR_FETCH_CF_REJECT` are active
+- count and last-seen details for provider concurrency-limit signals
+- count and last-seen details for Cloudflare-abuse block hits
+
 ## `iptv-tunerr probe`
 
 Probe provider URLs and print ranked results (best host first).

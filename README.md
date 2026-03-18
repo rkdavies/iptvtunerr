@@ -213,6 +213,19 @@ curl -s "http://127.0.0.1:5004/plex/ghost-report.json?observe=4s" | jq
 
 Limit: hidden Plex grabs that do not appear in `/status/sessions` still need the existing recovery runbook or a Plex restart.
 
+Provider behavior profile foundation is now present too:
+- live server endpoint: `/provider/profile.json`
+- exposes the gateway's learned effective tuner cap
+- records recent upstream concurrency-limit signals
+- records Cloudflare-abuse block hits when fail-fast mode is enabled
+- shows current auth-context forwarding posture (`Cookie`, `Referer`, `Origin`) and related safety knobs
+
+Example:
+
+```bash
+curl -s http://127.0.0.1:5004/provider/profile.json | jq
+```
+
 You can also use that intelligence to shape lineups:
 
 ```bash

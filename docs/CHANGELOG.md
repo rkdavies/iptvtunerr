@@ -19,6 +19,7 @@ All notable changes to IPTV Tunerr are documented here. Repo: [github.com/snapet
 - **Channel DNA foundation**: live channels now persist a `dna_id` derived from repaired `TVGID` or normalized channel identity inputs, creating a stable identity substrate for future cross-provider intelligence.
 - **Autopilot memory foundation**: added optional JSON-backed remembered playback decisions keyed by `dna_id + client_class`, allowing successful stream transcode/profile choices to be reused on later requests.
 - **Ghost Hunter foundation**: added `ghost-hunter` plus `/plex/ghost-report.json` to observe visible Plex Live TV sessions, classify stalls with reaper heuristics, and optionally stop stale visible transcode sessions.
+- **Provider behavior profile foundation**: added `/provider/profile.json` to expose learned effective tuner cap, recent upstream concurrency-limit signals, Cloudflare-abuse hits, and current auth-context forwarding posture.
 - **Product roadmap**: documented the Live TV Intelligence epic (Channel DNA, Autopilot, lineup recipes, Ghost Hunter, catch-up capsules).
 
 ---
