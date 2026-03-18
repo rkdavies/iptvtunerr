@@ -9,8 +9,8 @@ func TestIsHTTPOrHTTPS(t *testing.T) {
 	}{
 		{"http://example.com/stream", true},
 		{"https://example.com/stream", true},
-		{"HTTP://example.com", true},   // case-insensitive
-		{"HTTPS://example.com", true},  // case-insensitive
+		{"HTTP://example.com", true},  // case-insensitive
+		{"HTTPS://example.com", true}, // case-insensitive
 		{"file:///etc/passwd", false},
 		{"ftp://example.com/file", false},
 		{"data:text/plain,hello", false},
