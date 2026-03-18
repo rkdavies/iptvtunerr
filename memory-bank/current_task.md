@@ -2,11 +2,21 @@
 
 <!-- Update at session start and when focus changes. -->
 
-**Goal:** Completed on 2026-03-18: ship the direct-M3U multi-credential follow-up fix after `v0.1.6`, release it as `v0.1.7`, and clean up superseded git tags/releases.
+**Goal:** Completed on 2026-03-18: replace vague GitHub auto-release notes with repo-generated release notes so tagged releases always show the actual IPTV Tunerr changes without manual follow-up.
 
-**Scope:** In: direct-M3U multi-URL config/indexing fix, targeted tests, local verify, git commit/tag/push for the next patch release, and release cleanup for obsolete git tags/GitHub releases. Out: broader provider-merge redesign, fuzzy EPG matching, persistent match storage, or registry cleanup requiring unavailable package credentials.
+**Scope:** In: release-note generator script, workflow wiring, release-doc update, memory-bank updates, local verify, and backfilling the current `v0.1.7` GitHub Release page with generated notes. Out: broader changelog process redesign, asset-publishing refactors, or registry cleanup requiring unavailable package credentials.
 
 **Last updated:** 2026-03-18
+
+**Current focus shift (release notes automation, 2026-03-18):**
+- GitHub Releases were still using `generate_release_notes: true`, which produced vague/empty notes and required manual cleanup after each tag.
+- Implemented in this session:
+  1. Added `scripts/generate-release-notes.sh` to generate release notes from the repo itself.
+  2. Release notes now prefer the matching `docs/CHANGELOG.md` tag section, then `Unreleased`, then fall back to the exact tagged commit range.
+  3. Updated `.github/workflows/release.yml` to fetch full tag history and publish `body_path` from the generated notes instead of GitHub auto-notes.
+  4. Updated `.github/workflows/tester-bundles.yml` to stop appending a second set of generic auto-notes when uploading tester assets.
+  5. Documented the release-note source in `docs/how-to/package-test-builds.md` and added the recurring-loop note so future agents do not reintroduce GitHub auto-notes.
+  6. Validated with `./scripts/verify` and a generated `v0.1.7` notes file before preparing to republish the current release page.
 
 **Current focus shift (M3U multi-credential follow-up, 2026-03-18):**
 - Tester confirmed a separate root cause on their side: the index build did not include multiple credentialed M3U URLs.

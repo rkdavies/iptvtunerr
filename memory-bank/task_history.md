@@ -23,6 +23,23 @@ Append-only. One entry per completed task.
 ## Entries
 
 - Date: 2026-03-18
+  Title: Automate GitHub Release notes from repo changelog and tag commit range
+  Summary:
+    - Added `scripts/generate-release-notes.sh` so release pages are generated from repository data instead of GitHub's generic auto-notes.
+    - Wired `.github/workflows/release.yml` to fetch full tag history and publish `body_path` from generated notes; the generator prefers the matching changelog tag section, then `Unreleased`, then the exact tagged commit range.
+    - Updated `tester-bundles.yml`, packaging docs, and recurring-loop guidance so future release jobs stop reintroducing generic note generation and the current `v0.1.7` release can be backfilled with generated notes.
+  Verification:
+    - `bash -n scripts/generate-release-notes.sh .github/workflows/release.yml .github/workflows/tester-bundles.yml`
+    - `bash ./scripts/generate-release-notes.sh v0.1.7 dist/release-notes-v0.1.7.md`
+    - `./scripts/verify`
+  Notes:
+    - If old tags are intentionally pruned, the generator falls back to the tagged commit itself when no previous tag is available, which keeps notes bounded instead of dumping full repo history.
+  Opportunities filed:
+    - none
+  Links:
+    - scripts/generate-release-notes.sh, .github/workflows/release.yml, .github/workflows/tester-bundles.yml, docs/how-to/package-test-builds.md, memory-bank/recurring_loops.md
+
+- Date: 2026-03-18
   Title: Release v0.1.7 for multi-credential direct-M3U indexing and prune old release tags
   Summary:
     - Added numbered direct-M3U config support so `IPTV_TUNERR_M3U_URL`, `_2`, `_3`, and higher are loaded together when operators split channels across multiple credentialed playlist URLs.

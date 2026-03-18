@@ -36,6 +36,28 @@
 - **Symptom:** Hours of blind edits; "fix" doesn't stick or breaks something else.
 - **Rule:** If it's a bug: add **repro steps or a failing test before** attempting fixes. Prevents random poking.
 
+### Loop: GitHub Release pages keep showing vague auto-notes instead of actual IPTV Tunerr changes
+
+**Symptom**
+- Tagged releases get generic GitHub-generated notes or empty pages, and someone has to manually ask for a useful "what changed" summary afterward.
+
+**Why it's tricky**
+- GitHub auto-notes reflect merged metadata generically, not the repo's real release narrative.
+- Release quality drifts when tags are cut quickly and no one updates a hand-written note before pushing.
+
+**What works**
+- Do not rely on `generate_release_notes: true` for this repo.
+- Generate release notes from the repo itself at tag time:
+  1. Prefer the matching `docs/CHANGELOG.md` tag section.
+  2. Fall back to `docs/CHANGELOG.md` `Unreleased`.
+  3. Fall back again to the exact tagged commit range.
+- Keep `.github/workflows/release.yml` using `scripts/generate-release-notes.sh` so tag pushes always publish specific notes even when the changelog lags.
+
+**Where it's documented**
+- `scripts/generate-release-notes.sh`
+- `.github/workflows/release.yml`
+- `docs/how-to/package-test-builds.md`
+
 ### Loop: Curly quotes / special characters break piping, sed, JSON, shells
 
 **Symptom**
