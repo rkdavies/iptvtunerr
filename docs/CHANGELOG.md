@@ -13,22 +13,34 @@ All notable changes to IPTV Tunerr are documented here. Repo: [github.com/snapet
 
 ## [Unreleased]
 
+- No unreleased entries yet.
+
+---
+
+## [v0.1.10] — 2026-03-18
+
+### Live TV intelligence
 - **Channel intelligence foundation**: added `channel-report` plus `/channels/report.json` to score channels by guide confidence, stream resilience, and next-step fixes.
 - **EPG match provenance in reports**: when XMLTV is supplied, channel reports now show whether a channel matched by exact `tvg-id`, alias override, normalized-name repair, or not at all.
 - **Intelligence-driven lineup recipes**: added `IPTV_TUNERR_LINEUP_RECIPE` with `high_confidence`, `balanced`, `guide_first`, and `resilient` lineup shaping modes.
 - **Channel DNA foundation**: live channels now persist a `dna_id` derived from repaired `TVGID` or normalized channel identity inputs, creating a stable identity substrate for future cross-provider intelligence.
+- **Channel DNA grouping surface**: added `/channels/dna.json` and `iptv-tunerr channel-dna-report` to group live channels by shared stable identity instead of exposing `dna_id` only as a per-row field.
 - **Autopilot memory foundation**: added optional JSON-backed remembered playback decisions keyed by `dna_id + client_class`, allowing successful stream transcode/profile choices to be reused on later requests.
 - **Ghost Hunter foundation**: added `ghost-hunter` plus `/plex/ghost-report.json` to observe visible Plex Live TV sessions, classify stalls with reaper heuristics, and optionally stop stale visible transcode sessions.
+- **Ghost Hunter escalation**: when Plex exposes zero visible live sessions, Ghost Hunter now flags the hidden-grab pattern explicitly and returns the guarded recovery helper command and runbook path.
 - **Provider behavior profile foundation**: added `/provider/profile.json` to expose learned effective tuner cap, recent upstream concurrency-limit signals, Cloudflare-abuse hits, and current auth-context forwarding posture.
 - **Provider autotune foundation**: when `IPTV_TUNERR_FFMPEG_HLS_RECONNECT` is not explicitly set, Tunerr can now auto-arm ffmpeg HLS reconnect after it has actually observed HLS playlist/segment instability at runtime.
 - **Guide highlights foundation**: added `/guide/highlights.json`, which repackages the cached merged guide into `current`, `starting_soon`, `sports_now`, and `movies_starting_soon` lanes.
-- **Ghost Hunter escalation**: when Plex exposes zero visible live sessions, Ghost Hunter now flags the hidden-grab pattern explicitly and returns the guarded recovery helper command and runbook path.
+
+### Catch-up publishing
 - **Catch-up capsule preview foundation**: added `/guide/capsules.json`, which turns real guide rows into near-live capsule candidates with lane, publish, and expiry metadata for future library publishing.
 - **Catch-up capsule export**: added `iptv-tunerr catchup-capsules` to export the capsule preview model to JSON from a catalog plus guide/XMLTV input.
 - **Catch-up capsule layout export**: `catchup-capsules -layout-dir` now writes deterministic lane-split JSON files plus `manifest.json` for downstream publisher automation.
 - **Catch-up capsule publishing**: added `iptv-tunerr catchup-publish`, which turns capsule rows into `.strm + .nfo` lane libraries plus `publish-manifest.json`, and can now create/reuse matching Plex, Emby, and Jellyfin libraries in one pass.
 - **Jellyfin catch-up library compatibility**: catch-up publishing now uses Jellyfin's current `/Library/VirtualFolders` API shape (list via `GET /Library/VirtualFolders`, create with query params) instead of assuming Emby's older `/Query` behavior.
-- **Channel DNA grouping surface**: added `/channels/dna.json` and `iptv-tunerr channel-dna-report` to group live channels by shared stable identity instead of exposing `dna_id` only as a per-row field.
+- **Live server validation**: Emby and Jellyfin catch-up publishing were proven live in-cluster against real server PVC paths and created lane libraries plus `.strm + .nfo` output successfully.
+
+### Docs
 - **Product roadmap**: documented the Live TV Intelligence epic (Channel DNA, Autopilot, lineup recipes, Ghost Hunter, catch-up capsules).
 
 ---

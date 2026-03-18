@@ -20,6 +20,25 @@
 
 IPTV Tunerr connects IPTV providers (M3U/Xtream) to Plex, Emby, and Jellyfin. It handles two things independently: **live TV streaming** and **guide/EPG data** — use one, the other, or both.
 
+## What's New
+
+Recent product additions now in the repo:
+- runtime EPG repair and EPG provenance reporting
+- channel intelligence reports and lineup recipes
+- Channel DNA grouping
+- Autopilot playback-decision memory
+- Ghost Hunter session/stall reporting
+- provider behavior profile and conservative provider autotune
+- guide highlights lanes
+- catch-up capsule preview, export, and lane layout generation
+- catch-up publishing as real `.strm + .nfo` libraries
+- Emby and Jellyfin catch-up library registration, live-validated in cluster
+
+See:
+- [docs/features.md](docs/features.md)
+- [docs/CHANGELOG.md](docs/CHANGELOG.md)
+- [docs/epics/EPIC-live-tv-intelligence.md](docs/epics/EPIC-live-tv-intelligence.md)
+
 ## Release Channels
 
 | Channel | Image | Tags | Notes |
@@ -286,6 +305,14 @@ Catch-up publishing is now present too:
   - Plex
   - Emby
   - Jellyfin
+- current Jellyfin support uses Jellyfin's native virtual-folder API shape:
+  - list via `GET /Library/VirtualFolders`
+  - create via `POST /Library/VirtualFolders` with query params
+
+Live-validated on the cluster:
+- Emby catch-up publish created lane libraries and on-disk `.strm + .nfo` content on the server PVC
+- Jellyfin catch-up publish created the same lane libraries and on-disk content after the Jellyfin-specific API compatibility fix
+- Plex catch-up publish code path is implemented and tested, but Plex itself was not running in the validation namespace during this release pass
 
 Example:
 
