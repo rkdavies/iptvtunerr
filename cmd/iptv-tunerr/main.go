@@ -621,11 +621,15 @@ func main() {
 			Channels:            nil,
 			ProviderUser:        cfg.ProviderUser,
 			ProviderPass:        cfg.ProviderPass,
+			ProviderBaseURL:     cfg.ProviderBaseURL,
 			XMLTVSourceURL:      cfg.XMLTVURL,
 			XMLTVTimeout:        cfg.XMLTVTimeout,
 			XMLTVCacheTTL:       cfg.XMLTVCacheTTL,
 			EpgPruneUnlinked:    cfg.EpgPruneUnlinked,
 			FetchCFReject:       cfg.FetchCFReject,
+			ProviderEPGEnabled:  cfg.ProviderEPGEnabled,
+			ProviderEPGTimeout:  cfg.ProviderEPGTimeout,
+			ProviderEPGCacheTTL: cfg.ProviderEPGCacheTTL,
 		}
 		srv.UpdateChannels(live)
 		if cfg.XMLTVURL != "" {
@@ -775,11 +779,15 @@ func main() {
 			Channels:            nil, // set by UpdateChannels
 			ProviderUser:        cfg.ProviderUser,
 			ProviderPass:        cfg.ProviderPass,
+			ProviderBaseURL:     cfg.ProviderBaseURL,
 			XMLTVSourceURL:      cfg.XMLTVURL,
 			XMLTVTimeout:        cfg.XMLTVTimeout,
 			XMLTVCacheTTL:       cfg.XMLTVCacheTTL,
 			EpgPruneUnlinked:    cfg.EpgPruneUnlinked,
 			FetchCFReject:       cfg.FetchCFReject,
+			ProviderEPGEnabled:  cfg.ProviderEPGEnabled,
+			ProviderEPGTimeout:  cfg.ProviderEPGTimeout,
+			ProviderEPGCacheTTL: cfg.ProviderEPGCacheTTL,
 		}
 		srv.UpdateChannels(live)
 		if cfg.XMLTVURL != "" {

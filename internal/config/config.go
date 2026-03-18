@@ -94,6 +94,12 @@ type Config struct {
 	// Jellyfin registration: IPTV_TUNERR_JELLYFIN_HOST / IPTV_TUNERR_JELLYFIN_TOKEN
 	JellyfinHost  string
 	JellyfinToken string
+
+	// Provider EPG: fetch xmltv.php from the Xtream provider for richer guide data.
+	// Layered priority: Placeholder < External XMLTV < Provider XMLTV.
+	ProviderEPGEnabled  bool
+	ProviderEPGTimeout  time.Duration
+	ProviderEPGCacheTTL time.Duration
 }
 
 // Load reads config from environment. Call LoadEnvFile(".env") before Load() to use a .env file.
@@ -142,6 +148,9 @@ func Load() *Config {
 		EmbyToken:            os.Getenv("IPTV_TUNERR_EMBY_TOKEN"),
 		JellyfinHost:         getEnvURL("IPTV_TUNERR_JELLYFIN_HOST"),
 		JellyfinToken:        os.Getenv("IPTV_TUNERR_JELLYFIN_TOKEN"),
+		ProviderEPGEnabled:   getEnvBool("IPTV_TUNERR_PROVIDER_EPG_ENABLED", true),
+		ProviderEPGTimeout:   getEnvDuration("IPTV_TUNERR_PROVIDER_EPG_TIMEOUT", 90*time.Second),
+		ProviderEPGCacheTTL:  getEnvDuration("IPTV_TUNERR_PROVIDER_EPG_CACHE_TTL", 10*time.Minute),
 	}
 	if c.TunerCount <= 0 {
 		c.TunerCount = 2

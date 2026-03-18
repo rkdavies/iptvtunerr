@@ -44,11 +44,15 @@ type Server struct {
 	Channels            []catalog.LiveChannel
 	ProviderUser        string
 	ProviderPass        string
+	ProviderBaseURL     string
 	XMLTVSourceURL      string
 	XMLTVTimeout        time.Duration
 	XMLTVCacheTTL       time.Duration // 0 = use default 10m
 	EpgPruneUnlinked    bool          // when true, guide.xml and /live.m3u only include channels with tvg-id
 	FetchCFReject       bool          // abort HLS stream if segment redirected to CF abuse page (passed to Gateway)
+	ProviderEPGEnabled  bool
+	ProviderEPGTimeout  time.Duration
+	ProviderEPGCacheTTL time.Duration
 
 	// health state updated by UpdateChannels; read by /healthz.
 	healthMu       sync.RWMutex
@@ -632,14 +636,24 @@ func (s *Server) Run(ctx context.Context) error {
 	}
 	maybeStartPlexSessionReaper(ctx, gateway.Client)
 	s.gateway = gateway
+	cacheTTL := s.XMLTVCacheTTL
+	if s.ProviderEPGCacheTTL > 0 {
+		cacheTTL = s.ProviderEPGCacheTTL
+	}
 	xmltv := &XMLTV{
-		Channels:         s.Channels,
-		EpgPruneUnlinked: s.EpgPruneUnlinked,
-		SourceURL:        s.XMLTVSourceURL,
-		SourceTimeout:    s.XMLTVTimeout,
-		CacheTTL:         s.XMLTVCacheTTL,
+		Channels:           s.Channels,
+		EpgPruneUnlinked:   s.EpgPruneUnlinked,
+		SourceURL:          s.XMLTVSourceURL,
+		SourceTimeout:      s.XMLTVTimeout,
+		CacheTTL:           cacheTTL,
+		ProviderBaseURL:    s.ProviderBaseURL,
+		ProviderUser:       s.ProviderUser,
+		ProviderPass:       s.ProviderPass,
+		ProviderEPGEnabled: s.ProviderEPGEnabled,
+		ProviderEPGTimeout: s.ProviderEPGTimeout,
 	}
 	s.xmltv = xmltv
+	xmltv.StartRefresh(ctx)
 	m3uServe := &M3UServe{BaseURL: s.BaseURL, Channels: s.Channels, EpgPruneUnlinked: s.EpgPruneUnlinked}
 	s.m3uServe = m3uServe
 

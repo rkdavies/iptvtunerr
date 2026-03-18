@@ -5,7 +5,6 @@ import (
 	"encoding/xml"
 	"errors"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"sort"
@@ -17,18 +16,27 @@ import (
 	"github.com/snapetech/iptvtunerr/internal/catalog"
 )
 
-// XMLTV serves /guide.xml. By default it emits a minimal placeholder XMLTV.
-// When SourceURL is set, it fetches that XMLTV feed, filters to channels present
-// in the live catalog, and remaps programme channel IDs to local guide numbers.
-// The remapped result is cached for CacheTTL (default 10m) to avoid hammering
-// the upstream on every Plex metadata refresh.
+// XMLTV serves /guide.xml using a layered EPG pipeline:
+//  1. Placeholder (always) — fallback for unmatched channels
+//  2. External XMLTV (SourceURL) — supersedes placeholder per channel
+//  3. Provider XMLTV via xmltv.php — supersedes external per channel; external gap-fills provider
+//
+// The merged result is cached for CacheTTL (default 10m) and refreshed by StartRefresh in the
+// background. ServeHTTP reads from the cache; the pipeline runs asynchronously.
 type XMLTV struct {
 	Channels         []catalog.LiveChannel
 	EpgPruneUnlinked bool // when true, only include channels with TVGID set
 	SourceURL        string
 	SourceTimeout    time.Duration
 	Client           *http.Client
-	CacheTTL         time.Duration // 0 = use default 10m; only used when SourceURL is set
+	CacheTTL         time.Duration // 0 = use default 10m
+
+	// Provider EPG: if set and ProviderEPGEnabled, fetches xmltv.php for the richest guide data.
+	ProviderBaseURL    string
+	ProviderUser       string
+	ProviderPass       string
+	ProviderEPGEnabled bool
+	ProviderEPGTimeout time.Duration
 
 	mu        sync.RWMutex
 	cachedXML []byte
@@ -46,15 +54,17 @@ func (x *XMLTV) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	channels := x.filteredChannels()
-	if x.SourceURL != "" {
-		if err := x.serveExternalXMLTV(w, channels); err == nil {
-			return
-		} else {
-			log.Printf("xmltv: external source failed (%s); falling back to placeholder guide", err)
-		}
+	// Fast path: serve from cache.
+	x.mu.RLock()
+	data := x.cachedXML
+	x.mu.RUnlock()
+	if len(data) > 0 {
+		w.Header().Set("Content-Type", "application/xml; charset=utf-8")
+		_, _ = w.Write(data)
+		return
 	}
-	x.servePlaceholderXMLTV(w, channels)
+	// Cache empty (startup race before first refresh completes): serve placeholder.
+	x.servePlaceholderXMLTV(w, x.filteredChannels())
 }
 
 func (x *XMLTV) filteredChannels() []catalog.LiveChannel {
@@ -72,81 +82,6 @@ func (x *XMLTV) filteredChannels() []catalog.LiveChannel {
 		}
 	}
 	return filtered
-}
-
-func (x *XMLTV) serveExternalXMLTV(w http.ResponseWriter, channels []catalog.LiveChannel) error {
-	if len(channels) == 0 {
-		return errors.New("no live channels available")
-	}
-
-	ttl := x.CacheTTL
-	if ttl == 0 {
-		ttl = 10 * time.Minute
-	}
-
-	// Fast path: cache hit under read lock.
-	x.mu.RLock()
-	if len(x.cachedXML) > 0 && time.Now().Before(x.cacheExp) {
-		data := x.cachedXML
-		x.mu.RUnlock()
-		w.Header().Set("Content-Type", "application/xml; charset=utf-8")
-		_, err := w.Write(data)
-		return err
-	}
-	x.mu.RUnlock()
-
-	// Cache miss — acquire write lock, double-check, then fetch.
-	x.mu.Lock()
-	defer x.mu.Unlock()
-	if len(x.cachedXML) > 0 && time.Now().Before(x.cacheExp) {
-		// Another goroutine populated the cache while we waited for the lock.
-		w.Header().Set("Content-Type", "application/xml; charset=utf-8")
-		_, err := w.Write(x.cachedXML)
-		return err
-	}
-
-	data, err := x.fetchExternalXMLTV(channels)
-	if err != nil {
-		return err
-	}
-	x.cachedXML = data
-	x.cacheExp = time.Now().Add(ttl)
-
-	w.Header().Set("Content-Type", "application/xml; charset=utf-8")
-	_, err = w.Write(data)
-	return err
-}
-
-// fetchExternalXMLTV performs the upstream HTTP fetch and remaps channel IDs.
-// Called under the XMLTV write lock; returns the full remapped XML bytes.
-func (x *XMLTV) fetchExternalXMLTV(channels []catalog.LiveChannel) ([]byte, error) {
-	timeout := x.SourceTimeout
-	if timeout <= 0 {
-		timeout = 45 * time.Second
-	}
-	client := x.Client
-	if client == nil {
-		client = &http.Client{Timeout: timeout}
-	}
-	req, err := http.NewRequest(http.MethodGet, x.SourceURL, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("User-Agent", "IptvTunerr/1.0")
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New(resp.Status)
-	}
-
-	var buf bytes.Buffer
-	if err := writeRemappedXMLTV(&buf, resp.Body, channels); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
 }
 
 func (x *XMLTV) servePlaceholderXMLTV(w http.ResponseWriter, channels []catalog.LiveChannel) {

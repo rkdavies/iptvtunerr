@@ -87,7 +87,7 @@ func TestXMLTV_epgPruneUnlinked(t *testing.T) {
 }
 
 func TestXMLTV_cacheHit(t *testing.T) {
-	// Only one upstream fetch should occur even when two requests arrive.
+	// refresh() fetches once; subsequent ServeHTTP calls read from cache without re-fetching.
 	const srcXML = `<?xml version="1.0" encoding="utf-8"?>
 <tv>
   <channel id="BBC1.uk"><display-name>BBC One</display-name></channel>
@@ -104,9 +104,16 @@ func TestXMLTV_cacheHit(t *testing.T) {
 	x := &XMLTV{
 		Channels:  []catalog.LiveChannel{{GuideNumber: "101", GuideName: "BBC ONE", TVGID: "BBC1.uk"}},
 		SourceURL: upstream.URL,
-		CacheTTL:  time.Hour, // long TTL — cache should hold for both requests
+		CacheTTL:  time.Hour,
 	}
 
+	// Populate cache via refresh.
+	x.refresh()
+	if n := atomic.LoadInt32(&calls); n != 1 {
+		t.Fatalf("expected 1 upstream fetch after refresh, got %d", n)
+	}
+
+	// Two ServeHTTP calls should read from cache — no additional upstream fetches.
 	for i := 0; i < 2; i++ {
 		req := httptest.NewRequest(http.MethodGet, "/guide.xml", nil)
 		w := httptest.NewRecorder()
@@ -117,12 +124,12 @@ func TestXMLTV_cacheHit(t *testing.T) {
 	}
 
 	if n := atomic.LoadInt32(&calls); n != 1 {
-		t.Errorf("expected 1 upstream fetch (cache hit), got %d", n)
+		t.Errorf("expected 1 upstream fetch total (cache hit on ServeHTTP), got %d", n)
 	}
 }
 
-func TestXMLTV_cacheExpiry(t *testing.T) {
-	// After the TTL expires the next request must re-fetch from upstream.
+func TestXMLTV_refreshFetchesEachCall(t *testing.T) {
+	// Each call to refresh() fetches from upstream — the background ticker controls frequency.
 	const srcXML = `<?xml version="1.0" encoding="utf-8"?>
 <tv>
   <channel id="BBC1.uk"><display-name>BBC One</display-name></channel>
@@ -139,26 +146,25 @@ func TestXMLTV_cacheExpiry(t *testing.T) {
 	x := &XMLTV{
 		Channels:  []catalog.LiveChannel{{GuideNumber: "101", GuideName: "BBC ONE", TVGID: "BBC1.uk"}},
 		SourceURL: upstream.URL,
-		CacheTTL:  10 * time.Millisecond, // very short TTL
+		CacheTTL:  time.Hour,
 	}
 
-	// First request populates cache.
+	x.refresh()
+	x.refresh()
+
+	if n := atomic.LoadInt32(&calls); n != 2 {
+		t.Errorf("expected 2 upstream fetches (one per refresh call), got %d", n)
+	}
+
+	// ServeHTTP still reads from cache without triggering another fetch.
 	req := httptest.NewRequest(http.MethodGet, "/guide.xml", nil)
-	x.ServeHTTP(httptest.NewRecorder(), req)
-
-	// Wait for cache to expire.
-	time.Sleep(25 * time.Millisecond)
-
-	// Second request should re-fetch.
-	req = httptest.NewRequest(http.MethodGet, "/guide.xml", nil)
 	w := httptest.NewRecorder()
 	x.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {
-		t.Fatalf("second request: code=%d", w.Code)
+		t.Fatalf("code=%d", w.Code)
 	}
-
 	if n := atomic.LoadInt32(&calls); n != 2 {
-		t.Errorf("expected 2 upstream fetches after expiry, got %d", n)
+		t.Errorf("ServeHTTP should not trigger upstream fetch, got %d total calls", n)
 	}
 }
 
