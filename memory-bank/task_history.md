@@ -23,6 +23,22 @@ Append-only. One entry per completed task.
 ## Entries
 
 - Date: 2026-03-18
+  Title: Split gateway provider-profile and adaptation helpers into focused files
+  Summary:
+    - Moved provider behavior profile/autotune reporting out of `internal/tuner/gateway.go` into `gateway_provider_profile.go`.
+    - Moved Plex client adaptation, request hint parsing, session resolution, and Autopilot helper methods into `gateway_adapt.go`.
+    - Preserved runtime behavior while shrinking the core gateway file and giving the next decomposition slices cleaner seams.
+  Verification:
+    - `go test ./internal/tuner`
+    - `./scripts/verify`
+  Notes:
+    - This is structural only; the relay/transcode path remains in `gateway.go` for now.
+  Opportunities filed:
+    - none
+  Links:
+    - internal/tuner/gateway.go, internal/tuner/gateway_adapt.go, internal/tuner/gateway_provider_profile.go
+
+- Date: 2026-03-18
   Title: Split CLI command registration out of main.go
   Summary:
     - Moved command flag wiring and summaries into concern-specific registry builders in `cmd_core.go`, `cmd_reports.go`, and `cmd_ops.go`.

@@ -25,6 +25,13 @@
   2. make `main.go` a thin usage + dispatch layer
   3. preserve command names/help/behavior while reducing the size and coupling of the top-level entrypoint
 
+**Current focus shift (gateway decomposition, 2026-03-18):**
+- Next structural slice after the CLI registry split: reduce `internal/tuner/gateway.go` by moving the cleanest concern seams out first.
+- This pass covers:
+  1. move provider-profile/autotune reporting into a dedicated file
+  2. move Plex client adaptation and Autopilot helper logic into a dedicated file
+  3. preserve all runtime behavior and tests while shrinking the monolith
+
 **Current focus shift (EPG doctor operator docs, 2026-03-18):**
 - Follow-on docs cleanup after shipping `guide-health` and `epg-doctor`: make the new guide-diagnostics workflow discoverable from the how-to and runbook indexes so operators have one documented path from symptom to fix.
 - This pass adds:
