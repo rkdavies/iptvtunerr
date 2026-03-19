@@ -60,6 +60,7 @@ type Gateway struct {
 	hlsSegmentFailures   int
 	lastHLSSegmentAt     time.Time
 	lastHLSSegmentURL    string
+	hostFailures         map[string]hostFailureStat
 }
 
 type gatewayReqIDKey struct{}
@@ -180,12 +181,14 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		client = cloneClientWithCookieJar(client)
 		resp, err := client.Do(req)
 		if err != nil {
+			g.noteUpstreamFailure(streamURL, 0, "request_error")
 			log.Printf("gateway: channel=%q id=%s upstream[%d/%d] error url=%s err=%v",
 				channel.GuideName, channelID, i+1, len(urls), safeurl.RedactURL(streamURL), err)
 			continue
 		}
 		if resp.StatusCode != http.StatusOK {
 			preview := readUpstreamErrorPreview(resp)
+			g.noteUpstreamFailure(streamURL, resp.StatusCode, "http_status")
 			limited := isUpstreamConcurrencyLimit(resp.StatusCode, preview)
 			if limited {
 				upstreamConcurrencyLimited = true
@@ -211,11 +214,13 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		// Reject 200 with empty body (e.g. Cloudflare/redirect returning 0 bytes) — try next URL (learned from k3s IPTV hardening).
 		if resp.ContentLength == 0 {
+			g.noteUpstreamFailure(streamURL, resp.StatusCode, "empty_body")
 			log.Printf("gateway: channel=%q id=%s upstream[%d/%d] empty-body url=%s ct=%q",
 				channel.GuideName, channelID, i+1, len(urls), safeurl.RedactURL(streamURL), resp.Header.Get("Content-Type"))
 			resp.Body.Close()
 			continue
 		}
+		g.noteUpstreamSuccess(streamURL)
 		log.Printf("gateway: req=%s channel=%q id=%s start upstream[%d/%d] url=%s ct=%q cl=%d inuse=%d/%d ua=%q",
 			reqID, channel.GuideName, channelID, i+1, len(urls), safeurl.RedactURL(streamURL), resp.Header.Get("Content-Type"), resp.ContentLength, inUseNow, limit, r.UserAgent())
 		for k, v := range resp.Header {

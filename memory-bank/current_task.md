@@ -242,6 +242,14 @@
   2. reuse the lineup recipe logic instead of inventing a second registration-only heuristic set
   3. add regression coverage plus docs/changelog/env updates
   4. verify before pushing
+
+**Current focus shift (provider host penalties, 2026-03-18):**
+- Continuing the backlog after registration-intent parity: provider autotune should react to repeated failures on specific upstream hosts, not just generic instability counters.
+- This pass covers:
+  1. track repeated host-level upstream failures in the gateway/provider profile
+  2. automatically prefer healthier hosts/CDNs before retrying penalized ones
+  3. expose penalized hosts through the provider profile surface
+  4. add regression coverage plus docs/changelog updates and verify before pushing
 - README was rewritten so the front page explains why the features matter operationally, not just that they exist.
 
 **Current focus shift (remaining product-facing intelligence surfaces, 2026-03-18):**

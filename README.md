@@ -59,7 +59,7 @@ Recent additions are aimed at one thing: making the system explain itself and re
 - **Channel DNA**: gives channels a stable identity across provider variants and duplicates, so merged lineups and future automation have something more durable than a raw channel name.
 - **Autopilot memory**: remembers winning playback choices per channel and client class, including the upstream URL/host that actually worked, so the system can reuse what already worked instead of rediscovering it every time.
 - **Ghost Hunter**: surfaces stale-session and hidden-grab clues for Plex instead of leaving operators to infer them from broken playback.
-- **Provider profile and autotune**: shows learned concurrency caps, instability signals, Cloudflare hits, and cautious self-tuning decisions.
+- **Provider profile and autotune**: shows learned concurrency caps, instability signals, Cloudflare hits, penalized bad hosts, and cautious self-tuning decisions.
 - **Guide highlights and catch-up capsules**: turn raw XMLTV data into "what's on now", "starting soon", and publishable near-live programme blocks.
 - **Catch-up publishing**: writes real `.strm + .nfo` items and can register lane libraries in Plex, Emby, and Jellyfin. Emby and Jellyfin were live-validated in cluster.
 - **Guide-quality policy hooks**: can now use actual guide-health results, not just channel metadata, to suppress placeholder-only channels from runtime lineups and catch-up outputs.

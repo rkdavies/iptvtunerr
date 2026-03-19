@@ -114,6 +114,53 @@ func TestGateway_stream_prefersAutopilotRememberedURL(t *testing.T) {
 	}
 }
 
+func TestGateway_stream_penalizedHostFallsBehindHealthyHost(t *testing.T) {
+	hits := []string{}
+	penalized := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits = append(hits, "penalized")
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer penalized.Close()
+	healthy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits = append(hits, "healthy")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	}))
+	defer healthy.Close()
+
+	g := &Gateway{
+		Channels: []catalog.LiveChannel{
+			{GuideNumber: "1", GuideName: "Ch1", StreamURLs: []string{penalized.URL, healthy.URL}},
+		},
+		TunerCount: 2,
+	}
+
+	req1 := httptest.NewRequest(http.MethodGet, "http://local/stream/0", nil)
+	w1 := httptest.NewRecorder()
+	g.ServeHTTP(w1, req1)
+	if w1.Code != http.StatusOK {
+		t.Fatalf("first code: %d", w1.Code)
+	}
+	if len(hits) < 2 || hits[0] != "penalized" || hits[1] != "healthy" {
+		t.Fatalf("first hit order=%v", hits)
+	}
+
+	hits = nil
+	req2 := httptest.NewRequest(http.MethodGet, "http://local/stream/0", nil)
+	w2 := httptest.NewRecorder()
+	g.ServeHTTP(w2, req2)
+	if w2.Code != http.StatusOK {
+		t.Fatalf("second code: %d", w2.Code)
+	}
+	if len(hits) == 0 || hits[0] != "healthy" {
+		t.Fatalf("second hit order=%v want healthy first", hits)
+	}
+	prof := g.ProviderBehaviorProfile()
+	if len(prof.PenalizedHosts) != 1 || prof.PenalizedHosts[0].Host == "" {
+		t.Fatalf("penalized_hosts=%+v", prof.PenalizedHosts)
+	}
+}
+
 func TestGateway_stream_noURL(t *testing.T) {
 	g := &Gateway{
 		Channels: []catalog.LiveChannel{

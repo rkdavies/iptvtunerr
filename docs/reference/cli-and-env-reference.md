@@ -193,6 +193,7 @@ Common flags:
 
 Also available live over HTTP:
 - `GET /channels/report.json`
+- `GET /provider/profile.json` — runtime provider profile including learned tuner caps, HLS instability, Cloudflare hits, and penalized upstream hosts
 
 Use for:
 - spotting channels that are present but operationally weak

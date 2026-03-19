@@ -25,6 +25,7 @@ All notable changes to IPTV Tunerr are documented here. Repo: [github.com/snapet
 - **Source-backed catch-up replay mode**: `catchup-capsules`, `/guide/capsules.json`, and `catchup-publish` now support `IPTV_TUNERR_CATCHUP_REPLAY_URL_TEMPLATE`, which renders programme-window replay URLs when a real replay-capable source exists instead of pretending the live launcher is a recording.
 - **Autopilot hot-start**: added `autopilot-report` plus `/autopilot/report.json`, and hot-start tuning now lets favorite or high-hit channels use more aggressive ffmpeg startup thresholds/keepalive on the HLS path.
 - **Autopilot upstream memory**: remembered playback decisions now also keep the last known-good upstream URL/host, so repeat requests can prefer the working stream path first on duplicate or multi-CDN channels.
+- **Provider host penalties**: provider autotune now tracks repeated host-level upstream failures and automatically prefers healthier stream hosts/CDNs before retrying known-bad ones.
 - **Channel DNA preference policy**: added `IPTV_TUNERR_DNA_POLICY=prefer_best|prefer_resilient` so lineup and registration flows can now collapse duplicate `dna_id` variants to a preferred winner instead of only reporting the group.
 - **Shared ref loader**: report and guide tooling now use one shared local-file/URL loader with the repo HTTP client defaults instead of duplicated `http.DefaultClient` code paths.
 

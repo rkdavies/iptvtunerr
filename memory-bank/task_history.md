@@ -23,6 +23,22 @@ Append-only. One entry per completed task.
 ## Entries
 
 - Date: 2026-03-18
+  Title: Add provider host-penalty autotune
+  Summary:
+    - Added host-level failure tracking so repeated request/status/empty-body failures penalize specific upstream hosts instead of only incrementing global instability counters.
+    - Updated stream ordering so healthier hosts/CDNs are preferred before penalized ones, while still preserving normal fallback behavior.
+    - Exposed penalized upstream hosts in the provider profile and updated README, features, reference docs, and changelog.
+  Verification:
+    - `go test ./internal/tuner ./cmd/iptv-tunerr`
+    - `./scripts/verify`
+  Notes:
+    - A successful stream on a host clears its penalty, so the steering remains self-healing instead of permanently blacklisting one CDN.
+  Opportunities filed:
+    - none
+  Links:
+    - internal/tuner/gateway.go, internal/tuner/gateway_adapt.go, internal/tuner/gateway_provider_profile.go, internal/tuner/gateway_test.go
+
+- Date: 2026-03-18
   Title: Add registration intent-preset parity
   Summary:
     - Extended `IPTV_TUNERR_REGISTER_RECIPE` so Plex/Emby/Jellyfin registration can use `sports_now`, `kids_safe`, and `locals_first` in addition to the score-based recipes.

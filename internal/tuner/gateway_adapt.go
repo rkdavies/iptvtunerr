@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -302,6 +303,14 @@ func autopilotURLHost(raw string) string {
 	return strings.ToLower(strings.TrimSpace(u.Hostname()))
 }
 
+func upstreamURLAuthority(raw string) string {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil {
+		return ""
+	}
+	return strings.ToLower(strings.TrimSpace(u.Host))
+}
+
 func (g *Gateway) autopilotPreferredStreamURL(channel *catalog.LiveChannel, clientClass string, urls []string) string {
 	row, ok := g.lookupAutopilotDecision(channel, clientClass)
 	if !ok {
@@ -327,16 +336,38 @@ func (g *Gateway) reorderStreamURLs(channel *catalog.LiveChannel, clientClass st
 		return urls
 	}
 	preferred := g.autopilotPreferredStreamURL(channel, clientClass, urls)
-	if preferred == "" || preferred == urls[0] {
-		return urls
+	if preferred == "" {
+		out := append([]string(nil), urls...)
+		sort.SliceStable(out, func(i, j int) bool {
+			left := g.hostPenalty(upstreamURLAuthority(out[i]))
+			right := g.hostPenalty(upstreamURLAuthority(out[j]))
+			if left == right {
+				return i < j
+			}
+			return left < right
+		})
+		return out
 	}
 	out := make([]string, 0, len(urls))
 	out = append(out, preferred)
+	rest := make([]string, 0, len(urls)-1)
 	for _, candidate := range urls {
 		if candidate == preferred {
 			continue
 		}
-		out = append(out, candidate)
+		rest = append(rest, candidate)
+	}
+	sort.SliceStable(rest, func(i, j int) bool {
+		left := g.hostPenalty(upstreamURLAuthority(rest[i]))
+		right := g.hostPenalty(upstreamURLAuthority(rest[j]))
+		if left == right {
+			return i < j
+		}
+		return left < right
+	})
+	out = append(out, rest...)
+	if len(out) == len(urls) && preferred == urls[0] {
+		return out
 	}
 	return out
 }
