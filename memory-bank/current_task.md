@@ -40,6 +40,14 @@
   3. keep the remaining `gateway.go` focused on request orchestration / relay control flow
   4. run focused tuner tests, then full verify, then push the refactor
 
+**Current focus shift (gateway relay helper split, 2026-03-18):**
+- Continuing the same decomposition track with the next relay-mechanics block.
+- This pass covers:
+  1. move ffmpeg relay output writers and stdin normalizer types into a dedicated file
+  2. move bootstrap TS generation there as well
+  3. preserve the orchestration in `relayHLSWithFFmpeg` / `relayHLSAsTS`
+  4. verify and push if green
+
 **Current focus shift (EPG doctor operator docs, 2026-03-18):**
 - Follow-on docs cleanup after shipping `guide-health` and `epg-doctor`: make the new guide-diagnostics workflow discoverable from the how-to and runbook indexes so operators have one documented path from symptom to fix.
 - This pass adds:

@@ -23,6 +23,21 @@ Append-only. One entry per completed task.
 ## Entries
 
 - Date: 2026-03-18
+  Title: Split gateway ffmpeg relay helpers into a focused file
+  Summary:
+    - Moved ffmpeg relay output writer types, stdin-normalizer support, and bootstrap TS generation out of `internal/tuner/gateway.go` into `gateway_ffmpeg_relay.go`.
+    - Kept relay decision-making and orchestration in `gateway.go` while further shrinking the monolith.
+  Verification:
+    - `go test ./internal/tuner`
+    - `./scripts/verify`
+  Notes:
+    - This is another structural-only `INT-006` slice; runtime policy and transcoding choices were preserved.
+  Opportunities filed:
+    - none
+  Links:
+    - internal/tuner/gateway.go, internal/tuner/gateway_ffmpeg_relay.go
+
+- Date: 2026-03-18
   Title: Split gateway profile/ffmpeg and HLS helpers into focused files
   Summary:
     - Moved profile selection, override loading, ffmpeg codec argument building, bootstrap audio helpers, and ffmpeg input URL canonicalization into `internal/tuner/gateway_profiles.go`.
