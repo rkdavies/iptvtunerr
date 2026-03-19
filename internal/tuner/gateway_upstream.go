@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/cookiejar"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -21,6 +22,9 @@ func cloneClientWithCookieJar(src *http.Client) *http.Client {
 		src = httpclient.ForStreaming()
 	}
 	out := *src
+	if out.Jar != nil {
+		return &out
+	}
 	jar, err := cookiejar.New(nil)
 	if err != nil {
 		return &out
@@ -79,7 +83,27 @@ func (g *Gateway) applyUpstreamRequestHeaders(req *http.Request, incoming *http.
 	if g.ProviderUser != "" || g.ProviderPass != "" {
 		req.SetBasicAuth(g.ProviderUser, g.ProviderPass)
 	}
-	req.Header.Set("User-Agent", "IptvTunerr/1.0")
+	if g.CustomUserAgent != "" {
+		req.Header.Set("User-Agent", g.CustomUserAgent)
+	} else {
+		req.Header.Set("User-Agent", "IptvTunerr/1.0")
+	}
+	if req.URL != nil && req.URL.Host != "" && req.Header.Get("Host") == "" {
+		req.Header.Set("Host", req.URL.Hostname())
+	}
+	if _, ok := req.Header["Sec-Fetch-Site"]; !ok {
+		if strings.EqualFold(os.Getenv("IPTV_TUNERR_UPSTREAM_ADD_SEC_FETCH"), "1") {
+			req.Header.Set("Sec-Fetch-Site", "cross-site")
+		}
+	}
+	if _, ok := req.Header["Sec-Fetch-Mode"]; !ok {
+		if strings.EqualFold(os.Getenv("IPTV_TUNERR_UPSTREAM_ADD_SEC_FETCH"), "1") {
+			req.Header.Set("Sec-Fetch-Mode", "cors")
+		}
+	}
+	for name, value := range g.CustomHeaders {
+		req.Header.Set(name, value)
+	}
 }
 
 func (g *Gateway) newUpstreamRequest(ctx context.Context, incoming *http.Request, rawURL string) (*http.Request, error) {
@@ -111,6 +135,16 @@ func (g *Gateway) ffmpegInputHeaderBlock(incoming *http.Request, hostOverride st
 	if g.ProviderUser != "" || g.ProviderPass != "" {
 		auth := base64.StdEncoding.EncodeToString([]byte(g.ProviderUser + ":" + g.ProviderPass))
 		lines = appendFFmpegHeaderLine(lines, "Authorization", "Basic "+auth)
+	}
+	if g.CustomUserAgent != "" {
+		lines = appendFFmpegHeaderLine(lines, "User-Agent", g.CustomUserAgent)
+	} else {
+		lines = appendFFmpegHeaderLine(lines, "User-Agent", "IptvTunerr/1.0")
+	}
+	lines = appendFFmpegHeaderLine(lines, "Sec-Fetch-Site", "cross-site")
+	lines = appendFFmpegHeaderLine(lines, "Sec-Fetch-Mode", "cors")
+	for name, value := range g.CustomHeaders {
+		lines = appendFFmpegHeaderLine(lines, name, value)
 	}
 	if len(lines) == 0 {
 		return ""

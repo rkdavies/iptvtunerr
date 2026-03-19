@@ -567,7 +567,7 @@ func (g *Gateway) relayHLSAsTS(
 			progressThisPass := false
 			for _, segURL := range mediaLines {
 				if strings.HasSuffix(strings.ToLower(segURL), ".m3u8") {
-					next, err := g.fetchAndRewritePlaylist(r, client, segURL)
+					next, effectiveURL, err := g.fetchAndRewritePlaylist(r, client, segURL)
 					if err != nil {
 						if !clientStarted() {
 							return err
@@ -577,7 +577,7 @@ func (g *Gateway) relayHLSAsTS(
 						g.noteHLSPlaylistFailure(segURL)
 						continue
 					}
-					currentPlaylistURL = segURL
+					currentPlaylistURL = effectiveURL
 					currentPlaylist = next
 					progressThisPass = true
 					break
@@ -667,7 +667,7 @@ func (g *Gateway) relayHLSAsTS(
 			sleepHLSRefresh(currentPlaylist)
 		}
 
-		next, err := g.fetchAndRewritePlaylist(r, client, currentPlaylistURL)
+		next, effectiveURL, err := g.fetchAndRewritePlaylist(r, client, currentPlaylistURL)
 		if err != nil {
 			if !clientStarted() {
 				return err
@@ -686,5 +686,6 @@ func (g *Gateway) relayHLSAsTS(
 			continue
 		}
 		currentPlaylist = next
+		currentPlaylistURL = effectiveURL
 	}
 }

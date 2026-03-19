@@ -809,3 +809,125 @@ func TestPickPreferredResolvedIPFallsBack(t *testing.T) {
 		t.Fatalf("got %q, want first entry", got)
 	}
 }
+
+func TestParseCustomHeaders(t *testing.T) {
+	tests := []struct {
+		name   string
+		raw    string
+		expect map[string]string
+	}{
+		{
+			name:   "empty",
+			raw:    "",
+			expect: map[string]string{},
+		},
+		{
+			name:   "single header",
+			raw:    "Referer: http://example.com",
+			expect: map[string]string{"Referer": "http://example.com"},
+		},
+		{
+			name:   "multiple headers",
+			raw:    "Referer: http://example.com,Origin: http://example.com,X-Custom: value",
+			expect: map[string]string{"Referer": "http://example.com", "Origin": "http://example.com", "X-Custom": "value"},
+		},
+		{
+			name:   "with spaces",
+			raw:    "  Referer :  http://example.com  ,  Origin :  http://example.com  ",
+			expect: map[string]string{"Referer": "http://example.com", "Origin": "http://example.com"},
+		},
+		{
+			name:   "value with colon",
+			raw:    "Authorization: Bearer token:with:colons",
+			expect: map[string]string{"Authorization": "Bearer token:with:colons"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := parseCustomHeaders(tt.raw)
+			if len(got) != len(tt.expect) {
+				t.Fatalf("parseCustomHeaders(%q): got %d headers, want %d", tt.raw, len(got), len(tt.expect))
+			}
+			for k, v := range tt.expect {
+				if got[k] != v {
+					t.Errorf("parseCustomHeaders(%q)[%q] = %q, want %q", tt.raw, k, got[k], v)
+				}
+			}
+		})
+	}
+}
+
+func TestGateway_applyUpstreamRequestHeaders_customHeaders(t *testing.T) {
+	g := &Gateway{
+		CustomHeaders: map[string]string{
+			"Referer":  "http://smarter8k.ru",
+			"Origin":   "http://smarter8k.ru",
+			"X-Custom": "custom-value",
+		},
+	}
+	req := httptest.NewRequest(http.MethodGet, "http://example.com/segment.ts", nil)
+	g.applyUpstreamRequestHeaders(req, nil)
+	if req.Header.Get("Referer") != "http://smarter8k.ru" {
+		t.Errorf("Referer = %q, want http://smarter8k.ru", req.Header.Get("Referer"))
+	}
+	if req.Header.Get("Origin") != "http://smarter8k.ru" {
+		t.Errorf("Origin = %q, want http://smarter8k.ru", req.Header.Get("Origin"))
+	}
+	if req.Header.Get("X-Custom") != "custom-value" {
+		t.Errorf("X-Custom = %q, want custom-value", req.Header.Get("X-Custom"))
+	}
+	if req.Header.Get("User-Agent") != "IptvTunerr/1.0" {
+		t.Errorf("User-Agent = %q, want IptvTunerr/1.0", req.Header.Get("User-Agent"))
+	}
+}
+
+func TestGateway_applyUpstreamRequestHeaders_customUserAgent(t *testing.T) {
+	g := &Gateway{
+		CustomUserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+	}
+	req := httptest.NewRequest(http.MethodGet, "http://example.com/segment.ts", nil)
+	g.applyUpstreamRequestHeaders(req, nil)
+	if req.Header.Get("User-Agent") != "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" {
+		t.Errorf("User-Agent = %q, want custom UA", req.Header.Get("User-Agent"))
+	}
+}
+
+func TestGateway_applyUpstreamRequestHeaders_customUserAgentAndHeaders(t *testing.T) {
+	g := &Gateway{
+		CustomUserAgent: "CustomUA/1.0",
+		CustomHeaders: map[string]string{
+			"Referer": "http://example.com",
+		},
+	}
+	req := httptest.NewRequest(http.MethodGet, "http://example.com/segment.ts", nil)
+	g.applyUpstreamRequestHeaders(req, nil)
+	if req.Header.Get("User-Agent") != "CustomUA/1.0" {
+		t.Errorf("User-Agent = %q, want CustomUA/1.0", req.Header.Get("User-Agent"))
+	}
+	if req.Header.Get("Referer") != "http://example.com" {
+		t.Errorf("Referer = %q, want http://example.com", req.Header.Get("Referer"))
+	}
+}
+
+func TestGateway_ffmpegInputHeaderBlock_includesCustomHeaders(t *testing.T) {
+	g := &Gateway{
+		CustomHeaders: map[string]string{
+			"Referer":  "http://smarter8k.ru",
+			"Origin":   "http://smarter8k.ru",
+			"X-Custom": "custom-value",
+		},
+	}
+	block := g.ffmpegInputHeaderBlock(nil, "cdn.example")
+	if !strings.Contains(block, "Referer: http://smarter8k.ru") {
+		t.Fatalf("missing custom Referer in block: %q", block)
+	}
+	if !strings.Contains(block, "Origin: http://smarter8k.ru") {
+		t.Fatalf("missing custom Origin in block: %q", block)
+	}
+	if !strings.Contains(block, "X-Custom: custom-value") {
+		t.Fatalf("missing X-Custom in block: %q", block)
+	}
+	if !strings.Contains(block, "User-Agent: IptvTunerr/1.0") {
+		t.Fatalf("missing User-Agent in block: %q", block)
+	}
+}
