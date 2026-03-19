@@ -234,6 +234,14 @@
   2. prefer that known-good stream path first on later requests for the same `dna_id + client_class`
   3. expose the preferred host in Autopilot reports
   4. update docs/changelog/env examples and verify before pushing
+
+**Current focus shift (registration intent parity, 2026-03-18):**
+- Continuing the backlog after the Autopilot upstream-memory slice: registration flows should understand the same intent-oriented presets as runtime lineups.
+- This pass covers:
+  1. let `IPTV_TUNERR_REGISTER_RECIPE` accept `sports_now`, `kids_safe`, and `locals_first`
+  2. reuse the lineup recipe logic instead of inventing a second registration-only heuristic set
+  3. add regression coverage plus docs/changelog/env updates
+  4. verify before pushing
 - README was rewritten so the front page explains why the features matter operationally, not just that they exist.
 
 **Current focus shift (remaining product-facing intelligence surfaces, 2026-03-18):**

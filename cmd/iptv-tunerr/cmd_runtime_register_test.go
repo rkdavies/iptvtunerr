@@ -49,3 +49,17 @@ func TestApplyRegistrationRecipe_AppliesDNAPolicy(t *testing.T) {
 		t.Fatalf("expected resilient duplicate winner, got %q", got[0].ChannelID)
 	}
 }
+
+func TestApplyRegistrationRecipe_SportsNowUsesIntentRecipe(t *testing.T) {
+	live := []catalog.LiveChannel{
+		{ChannelID: "1", GuideNumber: "101", GuideName: "ESPN", TVGID: "espn.us", EPGLinked: true, StreamURL: "http://a/1"},
+		{ChannelID: "2", GuideNumber: "102", GuideName: "Drama Hub", TVGID: "drama.us", EPGLinked: true, StreamURL: "http://a/2"},
+	}
+	got := applyRegistrationRecipe(live, "sports_now")
+	if len(got) != 1 {
+		t.Fatalf("len=%d want 1", len(got))
+	}
+	if got[0].ChannelID != "1" {
+		t.Fatalf("channel=%q want 1", got[0].ChannelID)
+	}
+}

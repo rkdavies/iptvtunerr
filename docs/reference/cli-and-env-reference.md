@@ -593,6 +593,9 @@ Probe method:
   - `guide_first` = prefer guide confidence, then stream resilience
   - `resilient` = prefer backup-stream resilience, then guide confidence
   - `healthy` = like `high_confidence`, but also drops poor-tier channels before Plex/Emby/Jellyfin registration
+  - `sports_now` = register sports-heavy channels only
+  - `kids_safe` = register kid/family-safe channels only
+  - `locals_first` = keep the full set, but bubble likely locals/regionals to the top
 
 `IPTV_TUNERR_GUIDE_NUMBER_OFFSET`:
 - adds a per-instance channel/guide ID offset

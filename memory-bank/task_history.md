@@ -23,6 +23,22 @@ Append-only. One entry per completed task.
 ## Entries
 
 - Date: 2026-03-18
+  Title: Add registration intent-preset parity
+  Summary:
+    - Extended `IPTV_TUNERR_REGISTER_RECIPE` so Plex/Emby/Jellyfin registration can use `sports_now`, `kids_safe`, and `locals_first` in addition to the score-based recipes.
+    - Reused the runtime lineup recipe logic so registration and live lineup shaping do not drift into separate heuristics.
+    - Updated README, features, reference docs, changelog, and env examples for the expanded registration recipe surface.
+  Verification:
+    - `go test ./internal/tuner ./cmd/iptv-tunerr`
+    - `./scripts/verify`
+  Notes:
+    - `sports_now` and `kids_safe` filter the registered set; `locals_first` keeps the full set and only changes ordering.
+  Opportunities filed:
+    - none
+  Links:
+    - cmd/iptv-tunerr/cmd_runtime_register.go, cmd/iptv-tunerr/cmd_runtime_register_test.go, internal/tuner/server.go, docs/reference/cli-and-env-reference.md
+
+- Date: 2026-03-18
   Title: Add Autopilot upstream URL memory
   Summary:
     - Extended remembered Autopilot decisions to persist the last known-good upstream URL and host alongside transcode/profile choices.

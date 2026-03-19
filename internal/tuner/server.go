@@ -205,7 +205,11 @@ func applyLineupPreCapFilters(live []catalog.LiveChannel) []catalog.LiveChannel 
 }
 
 func applyLineupRecipe(live []catalog.LiveChannel) []catalog.LiveChannel {
-	recipe := strings.ToLower(strings.TrimSpace(os.Getenv("IPTV_TUNERR_LINEUP_RECIPE")))
+	return ApplyNamedLineupRecipe(live, os.Getenv("IPTV_TUNERR_LINEUP_RECIPE"))
+}
+
+func ApplyNamedLineupRecipe(live []catalog.LiveChannel, recipe string) []catalog.LiveChannel {
+	recipe = strings.ToLower(strings.TrimSpace(recipe))
 	if recipe == "" || recipe == "off" || recipe == "none" || len(live) == 0 {
 		return live
 	}

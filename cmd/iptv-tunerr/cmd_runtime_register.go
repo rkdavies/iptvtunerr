@@ -165,6 +165,10 @@ func applyRegistrationRecipe(live []catalog.LiveChannel, recipe string) []catalo
 	switch recipe {
 	case "", "off", "none":
 		return live
+	case "sports_now", "kids_safe", "locals_first":
+		out := tuner.ApplyNamedLineupRecipe(live, recipe)
+		log.Printf("Registration recipe applied: recipe=%s kept=%d/%d", recipe, len(out), len(live))
+		return out
 	}
 	rep := channelreport.Build(live)
 	byID := make(map[string]channelreport.ChannelHealth, len(rep.Channels))
