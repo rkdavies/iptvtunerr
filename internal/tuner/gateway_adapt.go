@@ -294,7 +294,54 @@ func (g *Gateway) lookupAutopilotDecision(channel *catalog.LiveChannel, clientCl
 	return g.Autopilot.get(channel.DNAID, clientClass)
 }
 
-func (g *Gateway) rememberAutopilotDecision(channel *catalog.LiveChannel, clientClass string, transcode bool, profile, reason string) {
+func autopilotURLHost(raw string) string {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil {
+		return ""
+	}
+	return strings.ToLower(strings.TrimSpace(u.Hostname()))
+}
+
+func (g *Gateway) autopilotPreferredStreamURL(channel *catalog.LiveChannel, clientClass string, urls []string) string {
+	row, ok := g.lookupAutopilotDecision(channel, clientClass)
+	if !ok {
+		return ""
+	}
+	wantURL := strings.TrimSpace(row.PreferredURL)
+	wantHost := strings.TrimSpace(row.PreferredHost)
+	for _, candidate := range urls {
+		if wantURL != "" && candidate == wantURL {
+			return candidate
+		}
+	}
+	for _, candidate := range urls {
+		if wantHost != "" && autopilotURLHost(candidate) == wantHost {
+			return candidate
+		}
+	}
+	return ""
+}
+
+func (g *Gateway) reorderStreamURLs(channel *catalog.LiveChannel, clientClass string, urls []string) []string {
+	if len(urls) < 2 {
+		return urls
+	}
+	preferred := g.autopilotPreferredStreamURL(channel, clientClass, urls)
+	if preferred == "" || preferred == urls[0] {
+		return urls
+	}
+	out := make([]string, 0, len(urls))
+	out = append(out, preferred)
+	for _, candidate := range urls {
+		if candidate == preferred {
+			continue
+		}
+		out = append(out, candidate)
+	}
+	return out
+}
+
+func (g *Gateway) rememberAutopilotDecision(channel *catalog.LiveChannel, clientClass string, transcode bool, profile, reason, preferredURL string) {
 	if g == nil || g.Autopilot == nil || channel == nil {
 		return
 	}
@@ -302,10 +349,12 @@ func (g *Gateway) rememberAutopilotDecision(channel *catalog.LiveChannel, client
 		return
 	}
 	g.Autopilot.put(autopilotDecision{
-		DNAID:       channel.DNAID,
-		ClientClass: clientClass,
-		Profile:     normalizeProfileName(profile),
-		Transcode:   transcode,
-		Reason:      reason,
+		DNAID:         channel.DNAID,
+		ClientClass:   clientClass,
+		Profile:       normalizeProfileName(profile),
+		Transcode:     transcode,
+		Reason:        reason,
+		PreferredURL:  strings.TrimSpace(preferredURL),
+		PreferredHost: autopilotURLHost(preferredURL),
 	})
 }

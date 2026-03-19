@@ -23,6 +23,22 @@ Append-only. One entry per completed task.
 ## Entries
 
 - Date: 2026-03-18
+  Title: Add Autopilot upstream URL memory
+  Summary:
+    - Extended remembered Autopilot decisions to persist the last known-good upstream URL and host alongside transcode/profile choices.
+    - Updated the gateway to prefer the remembered stream path first on later requests for the same `dna_id + client_class`.
+    - Exposed the preferred host in the Autopilot report and updated README, features, reference docs, changelog, and env examples.
+  Verification:
+    - `go test ./internal/tuner ./cmd/iptv-tunerr`
+    - `./scripts/verify`
+  Notes:
+    - The gateway still falls back across the remaining stream URLs normally if the remembered upstream stops working.
+  Opportunities filed:
+    - none
+  Links:
+    - internal/tuner/autopilot.go, internal/tuner/gateway_adapt.go, internal/tuner/gateway.go, internal/tuner/gateway_test.go
+
+- Date: 2026-03-18
   Title: Apply Channel DNA policy to lineup and registration
   Summary:
     - Added `IPTV_TUNERR_DNA_POLICY=off|prefer_best|prefer_resilient` so duplicate channels that share a `dna_id` can collapse to a single preferred winner.

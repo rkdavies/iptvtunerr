@@ -53,11 +53,12 @@ func TestAutopilotStoreHotDecisionAndReport(t *testing.T) {
 	store := &autopilotStore{
 		byKey: map[string]autopilotDecision{
 			autopilotKey("dna:fox", "web"): {
-				DNAID:       "dna:fox",
-				ClientClass: "web",
-				Profile:     profileDashFast,
-				Transcode:   true,
-				Hits:        4,
+				DNAID:         "dna:fox",
+				ClientClass:   "web",
+				Profile:       profileDashFast,
+				Transcode:     true,
+				PreferredHost: "preferred.example",
+				Hits:          4,
 			},
 			autopilotKey("dna:cnn", "native"): {
 				DNAID:       "dna:cnn",
@@ -80,5 +81,8 @@ func TestAutopilotStoreHotDecisionAndReport(t *testing.T) {
 	}
 	if len(rep.HotChannels) != 1 || rep.HotChannels[0].DNAID != "dna:fox" {
 		t.Fatalf("unexpected hot channels=%+v", rep.HotChannels)
+	}
+	if rep.HotChannels[0].PreferredHost != "preferred.example" {
+		t.Fatalf("preferred_host=%q want preferred.example", rep.HotChannels[0].PreferredHost)
 	}
 }

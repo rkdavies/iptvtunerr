@@ -57,7 +57,7 @@ Recent additions are aimed at one thing: making the system explain itself and re
 - **Runtime EPG repair**: fixes bad or missing channel IDs before guide pruning, so "channel name only" guide entries stop surviving just because a source had a bogus `tvg-id`.
 - **Channel intelligence reports**: scores each channel by guide confidence, resilience, and backup depth so you can see which channels are strong, weak, or not worth exposing.
 - **Channel DNA**: gives channels a stable identity across provider variants and duplicates, so merged lineups and future automation have something more durable than a raw channel name.
-- **Autopilot memory**: remembers winning playback choices per channel and client class, so the system can reuse what already worked instead of rediscovering it every time.
+- **Autopilot memory**: remembers winning playback choices per channel and client class, including the upstream URL/host that actually worked, so the system can reuse what already worked instead of rediscovering it every time.
 - **Ghost Hunter**: surfaces stale-session and hidden-grab clues for Plex instead of leaving operators to infer them from broken playback.
 - **Provider profile and autotune**: shows learned concurrency caps, instability signals, Cloudflare hits, and cautious self-tuning decisions.
 - **Guide highlights and catch-up capsules**: turn raw XMLTV data into "what's on now", "starting soon", and publishable near-live programme blocks.
@@ -288,11 +288,11 @@ Channel DNA is surfaced through:
 
 Autopilot memory lets IPTV Tunerr remember what already worked.
 
-Instead of rediscovering the same successful playback decision over and over, the system can remember a winning transcode/profile choice for a specific `dna_id + client_class` pair and reuse it later.
+Instead of rediscovering the same successful playback decision over and over, the system can remember a winning transcode/profile choice and the last known-good stream path for a specific `dna_id + client_class` pair and reuse them later.
 
 - startup can load a JSON memory file with remembered playback decisions
 - decisions are keyed by `dna_id + client_class`
-- once a stream path actually succeeds, Tunerr can remember the winning transcode/profile choice for that channel/client class pair
+- once a stream path actually succeeds, Tunerr can remember the winning transcode/profile choice and preferred upstream URL/host for that channel/client class pair
 - later requests from the same client class can reuse that remembered choice before falling back to generic client-adaptation rules
 
 Enable it with:

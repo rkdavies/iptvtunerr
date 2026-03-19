@@ -11,13 +11,15 @@ import (
 )
 
 type autopilotDecision struct {
-	DNAID       string `json:"dna_id"`
-	ClientClass string `json:"client_class"`
-	Profile     string `json:"profile"`
-	Transcode   bool   `json:"transcode"`
-	Reason      string `json:"reason"`
-	Hits        int    `json:"hits"`
-	UpdatedAt   string `json:"updated_at"`
+	DNAID         string `json:"dna_id"`
+	ClientClass   string `json:"client_class"`
+	Profile       string `json:"profile"`
+	Transcode     bool   `json:"transcode"`
+	Reason        string `json:"reason"`
+	PreferredURL  string `json:"preferred_url,omitempty"`
+	PreferredHost string `json:"preferred_host,omitempty"`
+	Hits          int    `json:"hits"`
+	UpdatedAt     string `json:"updated_at"`
 }
 
 type autopilotStore struct {
@@ -27,12 +29,13 @@ type autopilotStore struct {
 }
 
 type autopilotHotEntry struct {
-	DNAID       string `json:"dna_id"`
-	ClientClass string `json:"client_class"`
-	Hits        int    `json:"hits"`
-	Profile     string `json:"profile,omitempty"`
-	Transcode   bool   `json:"transcode"`
-	UpdatedAt   string `json:"updated_at,omitempty"`
+	DNAID         string `json:"dna_id"`
+	ClientClass   string `json:"client_class"`
+	Hits          int    `json:"hits"`
+	Profile       string `json:"profile,omitempty"`
+	Transcode     bool   `json:"transcode"`
+	PreferredHost string `json:"preferred_host,omitempty"`
+	UpdatedAt     string `json:"updated_at,omitempty"`
 }
 
 type AutopilotReport struct {
@@ -166,12 +169,13 @@ func (s *autopilotStore) hottest(limit int) []autopilotHotEntry {
 	rows := make([]autopilotHotEntry, 0, len(s.byKey))
 	for _, row := range s.byKey {
 		rows = append(rows, autopilotHotEntry{
-			DNAID:       row.DNAID,
-			ClientClass: row.ClientClass,
-			Hits:        row.Hits,
-			Profile:     row.Profile,
-			Transcode:   row.Transcode,
-			UpdatedAt:   row.UpdatedAt,
+			DNAID:         row.DNAID,
+			ClientClass:   row.ClientClass,
+			Hits:          row.Hits,
+			Profile:       row.Profile,
+			Transcode:     row.Transcode,
+			PreferredHost: row.PreferredHost,
+			UpdatedAt:     row.UpdatedAt,
 		})
 	}
 	sort.Slice(rows, func(i, j int) bool {

@@ -134,6 +134,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "no stream URL", http.StatusBadGateway)
 		return
 	}
+	urls = g.reorderStreamURLs(channel, clientClass, urls)
 
 	g.mu.Lock()
 	limit := g.effectiveTunerLimitLocked()
@@ -253,7 +254,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			hotStart := g.hotStartConfig(channel, clientClass)
 			if ffmpegPath, ffmpegErr := resolveFFmpegPath(); ffmpegErr == nil {
 				if err := g.relayHLSWithFFmpeg(w, r, ffmpegPath, streamURL, channel.GuideName, channelID, channel.GuideNumber, channel.TVGID, start, transcode, bufferSize, forcedProfile, hotStart); err == nil {
-					g.rememberAutopilotDecision(channel, clientClass, transcode, effectiveProfileName(g, channel, channelID, forcedProfile), adaptReason)
+					g.rememberAutopilotDecision(channel, clientClass, transcode, effectiveProfileName(g, channel, channelID, forcedProfile), adaptReason, streamURL)
 					return
 				} else {
 					log.Printf("gateway: channel=%q id=%s ffmpeg-%s failed (falling back to go relay): %v",
@@ -284,7 +285,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				log.Printf("gateway: channel=%q id=%s hls-relay failed: %v", channel.GuideName, channelID, err)
 				continue
 			}
-			g.rememberAutopilotDecision(channel, clientClass, transcode, effectiveProfileName(g, channel, channelID, forcedProfile), adaptReason)
+			g.rememberAutopilotDecision(channel, clientClass, transcode, effectiveProfileName(g, channel, channelID, forcedProfile), adaptReason, streamURL)
 			return
 		}
 		bufferSize := g.effectiveBufferSize(false)
@@ -304,7 +305,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		n, _ := io.Copy(sw, resp.Body)
 		resp.Body.Close()
 		flush()
-		g.rememberAutopilotDecision(channel, clientClass, false, "", adaptReason)
+		g.rememberAutopilotDecision(channel, clientClass, false, "", adaptReason, streamURL)
 		log.Printf("gateway: channel=%q id=%s proxied bytes=%d dur=%s", channel.GuideName, channelID, n, time.Since(start).Round(time.Millisecond))
 		return
 	}

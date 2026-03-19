@@ -226,6 +226,14 @@
   2. apply the policy in runtime lineup shaping so duplicate variants can collapse to one preferred winner
   3. apply the same policy in media-server registration so Plex/Emby/Jellyfin sync a cleaner lineup
   4. update docs/changelog/env examples and verify before pushing
+
+**Current focus shift (Autopilot upstream preference memory, 2026-03-18):**
+- Continuing the same backlog after the DNA policy slice: make Autopilot remember which upstream URL/host actually worked, not just the transcode/profile decision.
+- This pass covers:
+  1. persist preferred upstream URL/host in the Autopilot state file
+  2. prefer that known-good stream path first on later requests for the same `dna_id + client_class`
+  3. expose the preferred host in Autopilot reports
+  4. update docs/changelog/env examples and verify before pushing
 - README was rewritten so the front page explains why the features matter operationally, not just that they exist.
 
 **Current focus shift (remaining product-facing intelligence surfaces, 2026-03-18):**

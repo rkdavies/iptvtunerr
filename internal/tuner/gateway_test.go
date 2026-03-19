@@ -68,6 +68,52 @@ func TestGateway_stream_primaryThenBackup(t *testing.T) {
 	}
 }
 
+func TestGateway_stream_prefersAutopilotRememberedURL(t *testing.T) {
+	hits := []string{}
+	primary := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits = append(hits, "primary")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("primary"))
+	}))
+	defer primary.Close()
+	backup := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits = append(hits, "backup")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("backup"))
+	}))
+	defer backup.Close()
+
+	g := &Gateway{
+		Channels: []catalog.LiveChannel{
+			{GuideNumber: "1", GuideName: "Ch1", DNAID: "dna:test", StreamURL: primary.URL, StreamURLs: []string{primary.URL, backup.URL}},
+		},
+		TunerCount: 2,
+		Autopilot: &autopilotStore{
+			byKey: map[string]autopilotDecision{
+				autopilotKey("dna:test", "unknown"): {
+					DNAID:         "dna:test",
+					ClientClass:   "unknown",
+					PreferredURL:  backup.URL,
+					PreferredHost: autopilotURLHost(backup.URL),
+					Hits:          4,
+				},
+			},
+		},
+	}
+	req := httptest.NewRequest(http.MethodGet, "http://local/stream/0", nil)
+	w := httptest.NewRecorder()
+	g.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("code: %d", w.Code)
+	}
+	if w.Body.String() != "backup" {
+		t.Fatalf("body: %q", w.Body.String())
+	}
+	if len(hits) == 0 || hits[0] != "backup" {
+		t.Fatalf("hit order=%v want backup first", hits)
+	}
+}
+
 func TestGateway_stream_noURL(t *testing.T) {
 	g := &Gateway{
 		Channels: []catalog.LiveChannel{
