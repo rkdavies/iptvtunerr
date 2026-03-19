@@ -645,6 +645,64 @@ func TestApplyLineupPreCapFilters_lineupRecipeResilient(t *testing.T) {
 	}
 }
 
+func TestApplyLineupPreCapFilters_lineupRecipeSportsNow(t *testing.T) {
+	t.Setenv("IPTV_TUNERR_LINEUP_DROP_MUSIC", "")
+	t.Setenv("IPTV_TUNERR_LINEUP_EXCLUDE_REGEX", "")
+	t.Setenv("IPTV_TUNERR_LINEUP_RECIPE", "sports_now")
+	in := []catalog.LiveChannel{
+		{ChannelID: "1", GuideName: "TSN 1", TVGID: "tsn1.ca", StreamURL: "http://a/1"},
+		{ChannelID: "2", GuideName: "FOX News", TVGID: "foxnews.us", StreamURL: "http://a/2"},
+		{ChannelID: "3", GuideName: "NBA TV", TVGID: "nbatv.us", StreamURL: "http://a/3"},
+	}
+	out := applyLineupPreCapFilters(in)
+	if len(out) != 2 {
+		t.Fatalf("len=%d want 2", len(out))
+	}
+	if out[0].ChannelID != "1" || out[1].ChannelID != "3" {
+		t.Fatalf("unexpected sports recipe result: %+v", out)
+	}
+}
+
+func TestApplyLineupPreCapFilters_lineupRecipeKidsSafe(t *testing.T) {
+	t.Setenv("IPTV_TUNERR_LINEUP_DROP_MUSIC", "")
+	t.Setenv("IPTV_TUNERR_LINEUP_EXCLUDE_REGEX", "")
+	t.Setenv("IPTV_TUNERR_LINEUP_RECIPE", "kids_safe")
+	in := []catalog.LiveChannel{
+		{ChannelID: "1", GuideName: "Disney Channel", TVGID: "disney.us", StreamURL: "http://a/1"},
+		{ChannelID: "2", GuideName: "Nick Jr", TVGID: "nickjr.us", StreamURL: "http://a/2"},
+		{ChannelID: "3", GuideName: "Adult Swim", TVGID: "adultswim.us", StreamURL: "http://a/3"},
+	}
+	out := applyLineupPreCapFilters(in)
+	if len(out) != 2 {
+		t.Fatalf("len=%d want 2", len(out))
+	}
+	if out[0].ChannelID != "1" || out[1].ChannelID != "2" {
+		t.Fatalf("unexpected kids recipe result: %+v", out)
+	}
+}
+
+func TestApplyLineupPreCapFilters_lineupRecipeLocalsFirst(t *testing.T) {
+	t.Setenv("IPTV_TUNERR_LINEUP_DROP_MUSIC", "")
+	t.Setenv("IPTV_TUNERR_LINEUP_EXCLUDE_REGEX", "")
+	t.Setenv("IPTV_TUNERR_LINEUP_RECIPE", "locals_first")
+	t.Setenv("IPTV_TUNERR_LINEUP_REGION_PROFILE", "ca_west")
+	in := []catalog.LiveChannel{
+		{ChannelID: "1", GuideName: "Random Foreign", TVGID: "foreign.example", StreamURL: "http://a/1"},
+		{ChannelID: "2", GuideName: "CTV Regina", TVGID: "ctvregina.ca", StreamURL: "http://a/2"},
+		{ChannelID: "3", GuideName: "CBC Winnipeg", TVGID: "cbcwinnipeg.ca", StreamURL: "http://a/3"},
+	}
+	out := applyLineupPreCapFilters(in)
+	if len(out) != 3 {
+		t.Fatalf("len=%d want 3", len(out))
+	}
+	if out[0].ChannelID != "2" && out[0].ChannelID != "3" {
+		t.Fatalf("expected local channel first, got %+v", out[0])
+	}
+	if out[1].ChannelID != "2" && out[1].ChannelID != "3" {
+		t.Fatalf("expected local channel second, got %+v", out[1])
+	}
+}
+
 func TestApplyLineupPreCapFilters_regex(t *testing.T) {
 	t.Setenv("IPTV_TUNERR_LINEUP_DROP_MUSIC", "false")
 	t.Setenv("IPTV_TUNERR_LINEUP_EXCLUDE_REGEX", "shopping|adult")

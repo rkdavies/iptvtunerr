@@ -235,6 +235,14 @@
   2. require a real operator-provided replay source template instead of faking replay with the live stream URL
   3. expose replay-vs-launcher mode in capsule previews and publish manifests
   4. update docs/changelog/env/memory-bank and verify before push
+
+**Current focus shift (intent lineup recipes, 2026-03-18):**
+- Continuing the documented backlog immediately after replay mode.
+- This pass covers the next operator-visible slice from the lineup recipe epic:
+  1. extend `IPTV_TUNERR_LINEUP_RECIPE` beyond score-only modes
+  2. add built-in `sports_now`, `kids_safe`, and `locals_first` recipes
+  3. verify the filters/reordering with tuner tests
+  4. update docs/changelog/memory-bank and push if green
 - User called out that the README was listing features without explaining why an operator should care.
 - This docs pass rewrites the front-page README around:
   1. real IPTV pain points

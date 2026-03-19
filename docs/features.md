@@ -87,7 +87,7 @@ The guide pipeline merges three sources in priority order per channel: provider 
 | **EPG match provenance** | When an XMLTV source is supplied to the report command, channels show whether they matched by exact `tvg-id`, alias override, normalized-name repair, or not at all. |
 | **Top opportunity summary** | Report summary highlights the highest-frequency fixes across the lineup (for example missing `TVGID`, no backup streams, or alias repair candidates). |
 | **Channel leaderboard** | `channel-leaderboard` and `/channels/leaderboard.json` expose hall-of-fame, hall-of-shame, guide-risk, and stream-risk slices so weak channels stand out immediately. |
-| **Lineup recipes** | Intelligence-driven lineup shaping with `IPTV_TUNERR_LINEUP_RECIPE=high_confidence|balanced|guide_first|resilient`. |
+| **Lineup recipes** | Intelligence-driven lineup shaping with `IPTV_TUNERR_LINEUP_RECIPE=high_confidence|balanced|guide_first|resilient|sports_now|kids_safe|locals_first`. |
 | **Guide-quality lineup policy** | Optional runtime policy (`IPTV_TUNERR_GUIDE_POLICY=healthy|strict`) can suppress channels that only produce placeholder rows or no real programme coverage once guide-health cache is available. |
 | **Registration recipes** | `IPTV_TUNERR_REGISTER_RECIPE=healthy|balanced|high_confidence|guide_first|resilient` lets Plex/Emby/Jellyfin registration reuse channel-intelligence scoring instead of blindly registering catalog order. |
 | **Channel DNA foundation** | Live channels now carry a persisted `dna_id` derived from repaired `TVGID` or normalized channel identity inputs, and `/channels/dna.json` / `channel-dna-report` group channels by shared identity. |

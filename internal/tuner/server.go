@@ -237,6 +237,26 @@ func applyLineupRecipe(live []catalog.LiveChannel) []catalog.LiveChannel {
 		if len(filtered) > 0 {
 			rows = filtered
 		}
+	case "sports_now":
+		for _, row := range rows {
+			if lineupRecipeSportsLike(row.ch) {
+				filtered = append(filtered, row)
+			}
+		}
+		if len(filtered) > 0 {
+			rows = filtered
+		}
+	case "kids_safe":
+		for _, row := range rows {
+			if lineupRecipeKidsSafe(row.ch) {
+				filtered = append(filtered, row)
+			}
+		}
+		if len(filtered) > 0 {
+			rows = filtered
+		}
+	case "locals_first":
+		// Reordering only; keep full set.
 	case "resilient":
 		// Reordering only; keep full set.
 	case "balanced", "guide_first":
@@ -264,6 +284,16 @@ func applyLineupRecipe(live []catalog.LiveChannel) []catalog.LiveChannel {
 				return rows[i].score > rows[j].score
 			}
 			return rows[i].guide > rows[j].guide
+		case "locals_first":
+			left := lineupRecipeLocalScore(rows[i].ch)
+			right := lineupRecipeLocalScore(rows[j].ch)
+			if left == right {
+				if rows[i].score == rows[j].score {
+					return rows[i].idx < rows[j].idx
+				}
+				return rows[i].score > rows[j].score
+			}
+			return left > right
 		default: // balanced, high_confidence
 			if rows[i].score == rows[j].score {
 				return rows[i].idx < rows[j].idx
@@ -278,6 +308,47 @@ func applyLineupRecipe(live []catalog.LiveChannel) []catalog.LiveChannel {
 	}
 	log.Printf("Lineup recipe applied: recipe=%s kept=%d/%d", recipe, len(out), len(live))
 	return out
+}
+
+func lineupRecipeSportsLike(ch catalog.LiveChannel) bool {
+	s := lineupRecipeSearchText(ch)
+	for _, term := range []string{
+		" espn", " tsn", " sportsnet", " nfl", " nba", " nhl", " mlb", " soccer", " football", " basketball",
+		" baseball", " hockey", " fight ", " boxing", " ufc", " racing", " golf", " tennis", " cricket", " sports ",
+	} {
+		if strings.Contains(s, term) {
+			return true
+		}
+	}
+	return false
+}
+
+func lineupRecipeKidsSafe(ch catalog.LiveChannel) bool {
+	s := lineupRecipeSearchText(ch)
+	for _, blocked := range []string{
+		" adult", " xxx", " ppv", " fight ", " horror", " news", " fox news", " cnn", " msnbc",
+	} {
+		if strings.Contains(s, blocked) {
+			return false
+		}
+	}
+	for _, term := range []string{
+		" disney", " cartoon", " nick", " nickelodeon", " nick jr", " junior", " kids", " family", " teen",
+		" boomerang", " pbs kids", " treehouse", " cbeebies", " ytv", " universal kids",
+	} {
+		if strings.Contains(s, term) {
+			return true
+		}
+	}
+	return false
+}
+
+func lineupRecipeLocalScore(ch catalog.LiveChannel) int {
+	return scoreLineupChannelForShape("na_en", strings.ToLower(strings.TrimSpace(os.Getenv("IPTV_TUNERR_LINEUP_REGION_PROFILE"))), ch)
+}
+
+func lineupRecipeSearchText(ch catalog.LiveChannel) string {
+	return " " + strings.ToLower(strings.TrimSpace(ch.GuideName)+" "+strings.TrimSpace(ch.TVGID)) + " "
 }
 
 func normalizeLineupLangFilter(v string) string {

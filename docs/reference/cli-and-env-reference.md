@@ -564,6 +564,9 @@ Probe method:
   - `balanced` = rank by combined guide + stream score
   - `guide_first` = rank by guide confidence before stream resilience
   - `resilient` = rank by backup-stream resilience before guide score
+  - `sports_now` = keep sports-heavy channels only
+  - `kids_safe` = keep kid/family channels while excluding obvious unsafe/adult/news matches
+  - `locals_first` = bubble likely local/regional channels to the top using the same North-American lineup-shape heuristics
 - `IPTV_TUNERR_GUIDE_POLICY` — optional runtime guide-quality policy:
   - `off` = current permissive behavior
   - `healthy` = keep only channels with real programme rows once cached guide-health is available

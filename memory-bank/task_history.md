@@ -23,6 +23,22 @@ Append-only. One entry per completed task.
 ## Entries
 
 - Date: 2026-03-18
+  Title: Add intent lineup recipes
+  Summary:
+    - Extended `IPTV_TUNERR_LINEUP_RECIPE` with `sports_now`, `kids_safe`, and `locals_first` so operators can expose intent-focused lineups instead of only score-sorted ones.
+    - Reused explicit catalog/name/TVGID heuristics and existing lineup-shape logic rather than pretending the app already has a full semantic channel taxonomy.
+    - Updated README, features, reference docs, changelog, and current-task tracking for the new recipes.
+  Verification:
+    - `go test ./internal/tuner`
+    - `./scripts/verify`
+  Notes:
+    - `sports_now` and `kids_safe` are filter recipes; `locals_first` is a reorder recipe that piggybacks on the current North-American lineup-shape scoring.
+  Opportunities filed:
+    - none
+  Links:
+    - internal/tuner/server.go, internal/tuner/server_test.go, README.md, docs/reference/cli-and-env-reference.md
+
+- Date: 2026-03-18
   Title: Add source-backed catch-up replay mode
   Summary:
     - Added replay-aware capsule previews and publishing so `catchup-capsules`, `/guide/capsules.json`, and `catchup-publish` can render real programme-window replay URLs when `IPTV_TUNERR_CATCHUP_REPLAY_URL_TEMPLATE` is configured.
