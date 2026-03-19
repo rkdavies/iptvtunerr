@@ -81,6 +81,14 @@
   3. keep `gateway.go` focused on request lifecycle and relay logic
   4. verify and push if green
 
+**Current focus shift (CLI catalog helper split, 2026-03-18):**
+- With `gateway.go` mostly down to orchestration, the next hotspot is `cmd/iptv-tunerr/main.go`.
+- This pass covers:
+  1. move catalog ingest helpers out of `main.go`
+  2. move runtime EPG-repair helpers and catch-up preview helper alongside them
+  3. keep `main.go` as bootstrap + generic media-server helpers
+  4. verify and push if green
+
 **Current focus shift (EPG doctor operator docs, 2026-03-18):**
 - Follow-on docs cleanup after shipping `guide-health` and `epg-doctor`: make the new guide-diagnostics workflow discoverable from the how-to and runbook indexes so operators have one documented path from symptom to fix.
 - This pass adds:

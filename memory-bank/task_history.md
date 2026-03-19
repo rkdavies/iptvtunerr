@@ -23,6 +23,21 @@ Append-only. One entry per completed task.
 ## Entries
 
 - Date: 2026-03-18
+  Title: Split CLI catalog and EPG-repair helpers out of main.go
+  Summary:
+    - Moved catalog ingest, direct-M3U/provider fallback handling, stream-host filtering, runtime EPG repair helpers, and catch-up preview loading into `cmd/iptv-tunerr/cmd_catalog.go`.
+    - Reduced `cmd/iptv-tunerr/main.go` to bootstrap and generic media-server helper code.
+  Verification:
+    - `go test ./cmd/iptv-tunerr`
+    - `./scripts/verify`
+  Notes:
+    - This continues the command-entrypoint cleanup without changing command behavior.
+  Opportunities filed:
+    - none
+  Links:
+    - cmd/iptv-tunerr/main.go, cmd/iptv-tunerr/cmd_catalog.go
+
+- Date: 2026-03-18
   Title: Split gateway upstream request helpers into a focused file
   Summary:
     - Moved upstream request/header application, ffmpeg header block generation, response preview reading, and concurrency-preview parsing into `internal/tuner/gateway_upstream.go`.
