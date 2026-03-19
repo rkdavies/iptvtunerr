@@ -19,6 +19,9 @@ type autopilotDecision struct {
 	PreferredURL  string `json:"preferred_url,omitempty"`
 	PreferredHost string `json:"preferred_host,omitempty"`
 	Hits          int    `json:"hits"`
+	Failures      int    `json:"failures,omitempty"`
+	FailureStreak int    `json:"failure_streak,omitempty"`
+	LastFailureAt string `json:"last_failure_at,omitempty"`
 	UpdatedAt     string `json:"updated_at"`
 }
 
@@ -32,6 +35,8 @@ type autopilotHotEntry struct {
 	DNAID         string `json:"dna_id"`
 	ClientClass   string `json:"client_class"`
 	Hits          int    `json:"hits"`
+	Failures      int    `json:"failures,omitempty"`
+	FailureStreak int    `json:"failure_streak,omitempty"`
 	Profile       string `json:"profile,omitempty"`
 	Transcode     bool   `json:"transcode"`
 	PreferredHost string `json:"preferred_host,omitempty"`
@@ -95,10 +100,32 @@ func (s *autopilotStore) put(row autopilotDecision) {
 	defer s.mu.Unlock()
 	if existing, ok := s.byKey[key]; ok {
 		row.Hits = existing.Hits + 1
+		row.Failures = existing.Failures
 	} else if row.Hits <= 0 {
 		row.Hits = 1
 	}
+	row.FailureStreak = 0
 	row.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+	s.byKey[key] = row
+	_ = s.saveLocked()
+}
+
+func (s *autopilotStore) fail(dnaID, clientClass string) {
+	if s == nil {
+		return
+	}
+	key := autopilotKey(dnaID, clientClass)
+	if key == "" {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	row := s.byKey[key]
+	row.DNAID = dnaID
+	row.ClientClass = clientClass
+	row.Failures++
+	row.FailureStreak++
+	row.LastFailureAt = time.Now().UTC().Format(time.RFC3339)
 	s.byKey[key] = row
 	_ = s.saveLocked()
 }
@@ -172,6 +199,8 @@ func (s *autopilotStore) hottest(limit int) []autopilotHotEntry {
 			DNAID:         row.DNAID,
 			ClientClass:   row.ClientClass,
 			Hits:          row.Hits,
+			Failures:      row.Failures,
+			FailureStreak: row.FailureStreak,
 			Profile:       row.Profile,
 			Transcode:     row.Transcode,
 			PreferredHost: row.PreferredHost,

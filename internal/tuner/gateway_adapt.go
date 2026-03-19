@@ -292,7 +292,14 @@ func (g *Gateway) lookupAutopilotDecision(channel *catalog.LiveChannel, clientCl
 	if g == nil || g.Autopilot == nil || channel == nil {
 		return autopilotDecision{}, false
 	}
-	return g.Autopilot.get(channel.DNAID, clientClass)
+	row, ok := g.Autopilot.get(channel.DNAID, clientClass)
+	if !ok {
+		return autopilotDecision{}, false
+	}
+	if row.FailureStreak >= getenvInt("IPTV_TUNERR_AUTOPILOT_MAX_FAILURE_STREAK", 2) {
+		return autopilotDecision{}, false
+	}
+	return row, true
 }
 
 func autopilotURLHost(raw string) string {
@@ -388,4 +395,14 @@ func (g *Gateway) rememberAutopilotDecision(channel *catalog.LiveChannel, client
 		PreferredURL:  strings.TrimSpace(preferredURL),
 		PreferredHost: autopilotURLHost(preferredURL),
 	})
+}
+
+func (g *Gateway) rememberAutopilotFailure(channel *catalog.LiveChannel, clientClass string) {
+	if g == nil || g.Autopilot == nil || channel == nil {
+		return
+	}
+	if strings.TrimSpace(channel.DNAID) == "" || strings.TrimSpace(clientClass) == "" {
+		return
+	}
+	g.Autopilot.fail(channel.DNAID, clientClass)
 }

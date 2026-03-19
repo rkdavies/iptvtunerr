@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -40,6 +41,7 @@ func reportCommands() []commandSpec {
 	ghostHunterObserve := ghostHunterCmd.Duration("observe", 4*time.Second, "Observation window before classifying stale sessions")
 	ghostHunterPoll := ghostHunterCmd.Duration("poll", time.Second, "Poll interval while observing")
 	ghostHunterStop := ghostHunterCmd.Bool("stop", false, "Stop stale visible transcode sessions after classification")
+	ghostHunterRecoverHidden := ghostHunterCmd.String("recover-hidden", "", "When hidden-grab suspicion is detected, run the guarded helper: dry-run|restart")
 	ghostHunterMachineID := ghostHunterCmd.String("machine-id", strings.TrimSpace(os.Getenv("IPTV_TUNERR_PLEX_SESSION_REAPER_MACHINE_ID")), "Optional client machineIdentifier scope")
 	ghostHunterPlayerIP := ghostHunterCmd.String("player-ip", strings.TrimSpace(os.Getenv("IPTV_TUNERR_PLEX_SESSION_REAPER_PLAYER_IP")), "Optional player IP scope")
 
@@ -57,6 +59,17 @@ func reportCommands() []commandSpec {
 	catchupCapsulesGuidePolicy := catchupCapsulesCmd.String("guide-policy", strings.TrimSpace(os.Getenv("IPTV_TUNERR_CATCHUP_GUIDE_POLICY")), "Optional guide-quality policy: off|healthy|strict")
 	catchupCapsulesReplayTemplate := catchupCapsulesCmd.String("replay-url-template", strings.TrimSpace(os.Getenv("IPTV_TUNERR_CATCHUP_REPLAY_URL_TEMPLATE")), "Optional source-backed replay URL template; when set, capsules include replay URLs instead of launcher-only metadata")
 
+	catchupRecordCmd := flag.NewFlagSet("catchup-record", flag.ExitOnError)
+	catchupRecordCatalog := catchupRecordCmd.String("catalog", "", "Input catalog.json (default: IPTV_TUNERR_CATALOG)")
+	catchupRecordXMLTV := catchupRecordCmd.String("xmltv", "", "Guide/XMLTV file path or http(s) URL (required; /guide.xml works well)")
+	catchupRecordHorizon := catchupRecordCmd.Duration("horizon", 3*time.Hour, "How far ahead to inspect capsule windows")
+	catchupRecordLimit := catchupRecordCmd.Int("limit", 20, "Max capsules to inspect for recording")
+	catchupRecordOutDir := catchupRecordCmd.String("out-dir", "", "Output directory for recorded catch-up items (required)")
+	catchupRecordStreamBaseURL := catchupRecordCmd.String("stream-base-url", "", "Base URL used to fetch /stream/<channel> when replay URLs are absent (default: IPTV_TUNERR_BASE_URL)")
+	catchupRecordMaxDuration := catchupRecordCmd.Duration("max-duration", 30*time.Second, "Max wall-clock capture duration per in-progress capsule")
+	catchupRecordGuidePolicy := catchupRecordCmd.String("guide-policy", strings.TrimSpace(os.Getenv("IPTV_TUNERR_CATCHUP_GUIDE_POLICY")), "Optional guide-quality policy: off|healthy|strict")
+	catchupRecordReplayTemplate := catchupRecordCmd.String("replay-url-template", strings.TrimSpace(os.Getenv("IPTV_TUNERR_CATCHUP_REPLAY_URL_TEMPLATE")), "Optional source-backed replay URL template; when set, recording fetches replay URLs instead of live launcher URLs")
+
 	return []commandSpec{
 		{Name: "channel-report", Section: "Guide/EPG", Summary: "Channel intelligence report: score stream resilience + guide confidence", FlagSet: channelReportCmd, Run: func(cfg *config.Config, args []string) {
 			_ = channelReportCmd.Parse(args)
@@ -72,7 +85,7 @@ func reportCommands() []commandSpec {
 		}},
 		{Name: "ghost-hunter", Section: "Guide/EPG", Summary: "Observe Plex Live TV sessions, classify stalls, optionally stop stale ones", FlagSet: ghostHunterCmd, Run: func(_ *config.Config, args []string) {
 			_ = ghostHunterCmd.Parse(args)
-			handleGhostHunter(*ghostHunterPMSURL, *ghostHunterToken, *ghostHunterObserve, *ghostHunterPoll, *ghostHunterStop, *ghostHunterMachineID, *ghostHunterPlayerIP)
+			handleGhostHunter(*ghostHunterPMSURL, *ghostHunterToken, *ghostHunterObserve, *ghostHunterPoll, *ghostHunterStop, *ghostHunterRecoverHidden, *ghostHunterMachineID, *ghostHunterPlayerIP)
 		}},
 		{Name: "autopilot-report", Section: "Guide/EPG", Summary: "Show remembered Autopilot decisions and hottest channels", FlagSet: autopilotReportCmd, Run: func(_ *config.Config, args []string) {
 			_ = autopilotReportCmd.Parse(args)
@@ -81,6 +94,10 @@ func reportCommands() []commandSpec {
 		{Name: "catchup-capsules", Section: "Guide/EPG", Summary: "Export near-live capsule candidates from guide XML/guide.xml", FlagSet: catchupCapsulesCmd, Run: func(cfg *config.Config, args []string) {
 			_ = catchupCapsulesCmd.Parse(args)
 			handleCatchupCapsules(cfg, *catchupCapsulesCatalog, *catchupCapsulesXMLTV, *catchupCapsulesHorizon, *catchupCapsulesLimit, *catchupCapsulesOut, *catchupCapsulesLayoutDir, *catchupCapsulesGuidePolicy, *catchupCapsulesReplayTemplate)
+		}},
+		{Name: "catchup-record", Section: "Guide/EPG", Summary: "Record current in-progress catch-up capsules to local TS files", FlagSet: catchupRecordCmd, Run: func(cfg *config.Config, args []string) {
+			_ = catchupRecordCmd.Parse(args)
+			handleCatchupRecord(cfg, *catchupRecordCatalog, *catchupRecordXMLTV, *catchupRecordHorizon, *catchupRecordLimit, *catchupRecordOutDir, *catchupRecordStreamBaseURL, *catchupRecordMaxDuration, *catchupRecordGuidePolicy, *catchupRecordReplayTemplate)
 		}},
 	}
 }
@@ -138,7 +155,34 @@ func handleChannelDNAReport(cfg *config.Config, catalogPath, outPath string) {
 	}
 }
 
-func handleGhostHunter(pmsURL, token string, observe, poll time.Duration, stop bool, machineID, playerIP string) {
+var ghostHunterRecoverRunner = func(mode string) error {
+	mode = strings.ToLower(strings.TrimSpace(mode))
+	if mode == "" || mode == "off" || mode == "none" {
+		return nil
+	}
+	args := []string{}
+	switch mode {
+	case "dry-run":
+		args = append(args, "--dry-run")
+	case "restart":
+		args = append(args, "--restart")
+	default:
+		return fmt.Errorf("unknown recover-hidden mode %q", mode)
+	}
+	cmd := exec.Command("./scripts/plex-hidden-grab-recover.sh", args...)
+	cmd.Stdout = os.Stderr
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func maybeRunGhostHunterRecovery(rep tuner.GhostHunterReport, recoverHidden string) error {
+	if !rep.HiddenGrabSuspected || strings.TrimSpace(recoverHidden) == "" {
+		return nil
+	}
+	return ghostHunterRecoverRunner(recoverHidden)
+}
+
+func handleGhostHunter(pmsURL, token string, observe, poll time.Duration, stop bool, recoverHidden, machineID, playerIP string) {
 	ghCfg := tuner.NewGhostHunterConfigFromEnv()
 	ghCfg.PMSURL = strings.TrimSpace(pmsURL)
 	ghCfg.Token = strings.TrimSpace(token)
@@ -149,6 +193,10 @@ func handleGhostHunter(pmsURL, token string, observe, poll time.Duration, stop b
 	rep, err := tuner.RunGhostHunter(context.Background(), ghCfg, stop, nil)
 	if err != nil {
 		log.Printf("Ghost Hunter failed: %v", err)
+		os.Exit(1)
+	}
+	if err := maybeRunGhostHunterRecovery(rep, recoverHidden); err != nil {
+		log.Printf("Ghost Hunter hidden-grab recovery failed: %v", err)
 		os.Exit(1)
 	}
 	data, _ := json.MarshalIndent(rep, "", "  ")
@@ -198,4 +246,38 @@ func handleCatchupCapsules(cfg *config.Config, catalogPath, xmltvRef string, hor
 	} else {
 		fmt.Println(string(out))
 	}
+}
+
+func handleCatchupRecord(cfg *config.Config, catalogPath, xmltvRef string, horizon time.Duration, limit int, outDir, streamBaseURL string, maxDuration time.Duration, guidePolicy, replayTemplate string) {
+	path := strings.TrimSpace(catalogPath)
+	if path == "" {
+		path = cfg.CatalogPath
+	}
+	if strings.TrimSpace(xmltvRef) == "" {
+		log.Print("Set -xmltv to a local file or http(s) guide/XMLTV URL")
+		os.Exit(1)
+	}
+	outDir = strings.TrimSpace(outDir)
+	if outDir == "" {
+		log.Print("Set -out-dir to a writable recording directory")
+		os.Exit(1)
+	}
+	streamBaseURL = firstNonEmpty(strings.TrimSpace(streamBaseURL), strings.TrimSpace(cfg.BaseURL))
+	if streamBaseURL == "" {
+		log.Print("Set -stream-base-url or IPTV_TUNERR_BASE_URL so recording can fetch this tuner")
+		os.Exit(1)
+	}
+	rep, err := buildCatchupCapsulePreviewFromRef(path, strings.TrimSpace(xmltvRef), horizon, limit, guidePolicy)
+	if err != nil {
+		log.Printf("Build catchup capsule preview failed: %v", err)
+		os.Exit(1)
+	}
+	rep = tuner.ApplyCatchupReplayTemplate(rep, replayTemplate)
+	manifest, err := tuner.RecordCatchupCapsules(context.Background(), rep, streamBaseURL, outDir, maxDuration, nil)
+	if err != nil {
+		log.Printf("Record catchup capsules failed: %v", err)
+		os.Exit(1)
+	}
+	data, _ := json.MarshalIndent(manifest, "", "  ")
+	fmt.Println(string(data))
 }

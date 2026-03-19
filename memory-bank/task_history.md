@@ -23,6 +23,22 @@ Append-only. One entry per completed task.
 ## Entries
 
 - Date: 2026-03-18
+  Title: Add catch-up recorder and Autopilot failure memory
+  Summary:
+    - Added `catchup-record`, which records current in-progress capsules to local TS files plus `record-manifest.json` for non-replay sources.
+    - Extended Autopilot decisions with failure counts/streaks so stale remembered paths stop being reused automatically after repeated misses.
+    - Added a Ghost Hunter CLI recovery hook so hidden-grab suspicion can invoke the guarded helper directly with `-recover-hidden dry-run|restart`.
+  Verification:
+    - `go test ./internal/tuner ./cmd/iptv-tunerr`
+    - `./scripts/verify`
+  Notes:
+    - `catchup-record` is the recorder-backed path for current in-progress capsules; it does not pretend to be a full always-on DVR daemon.
+  Opportunities filed:
+    - none
+  Links:
+    - internal/tuner/catchup_record.go, internal/tuner/autopilot.go, cmd/iptv-tunerr/cmd_reports.go, docs/reference/cli-and-env-reference.md
+
+- Date: 2026-03-18
   Title: Add DNA provider preference, catch-up curation, and Ghost Hunter action guidance
   Summary:
     - Added `IPTV_TUNERR_DNA_PREFERRED_HOSTS` so duplicate DNA winners can bias trusted provider/CDN authorities before score-based tie-breaking.

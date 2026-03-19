@@ -30,6 +30,9 @@ All notable changes to IPTV Tunerr are documented here. Repo: [github.com/snapet
 - **Channel DNA preferred hosts**: added `IPTV_TUNERR_DNA_PREFERRED_HOSTS` so duplicate-variant selection can bias trusted provider/CDN authorities before falling back to score-based tie-breaking.
 - **Ghost Hunter action recommendations**: visible stale sessions and hidden-grab suspicion now produce different recommended next actions and recovery commands, and the live endpoint supports `?stop=true`.
 - **Catch-up capsule curation**: duplicate programme rows that share the same `dna_id + start + title` are now curated down to the richer capsule candidate before export/publish.
+- **Autopilot failure memory**: remembered Autopilot decisions now track failure counts/streaks too, so stale remembered paths stop being reused automatically after repeated misses.
+- **Ghost Hunter recovery hook**: the CLI can now run the guarded hidden-grab helper directly with `-recover-hidden dry-run|restart`.
+- **Catch-up recorder**: added `catchup-record`, which records current in-progress capsules to local TS files plus `record-manifest.json` for non-replay sources.
 - **Shared ref loader**: report and guide tooling now use one shared local-file/URL loader with the repo HTTP client defaults instead of duplicated `http.DefaultClient` code paths.
 
 ### Ingest / probe

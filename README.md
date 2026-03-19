@@ -59,6 +59,7 @@ Recent additions are aimed at one thing: making the system explain itself and re
 - **Channel DNA**: gives channels a stable identity across provider variants and duplicates, so merged lineups and future automation have something more durable than a raw channel name.
 - **Channel DNA provider preference**: duplicate variants can now prefer trusted provider/CDN authorities first, so the winner can reflect operator preference as well as generic channel score.
 - **Autopilot memory**: remembers winning playback choices per channel and client class, including the upstream URL/host that actually worked, so the system can reuse what already worked instead of rediscovering it every time.
+- **Autopilot failure memory**: repeated failures now count too, so stale remembered decisions back off instead of forcing the same bad path forever.
 - **Ghost Hunter**: surfaces stale-session and hidden-grab clues for Plex instead of leaving operators to infer them from broken playback.
 - **Provider profile and autotune**: shows learned concurrency caps, instability signals, Cloudflare hits, penalized bad hosts, and cautious self-tuning decisions.
 - **Guide highlights and catch-up capsules**: turn raw XMLTV data into "what's on now", "starting soon", and publishable near-live programme blocks.
@@ -324,6 +325,7 @@ Ghost Hunter is aimed at one of the nastiest Plex support loops: playback looks 
 - live server endpoint: `/plex/ghost-report.json`
 - for visible stale sessions it now recommends rerunning with stop mode first
 - when no visible sessions exist, it now emits a structured hidden-grab escalation with a recovery command and runbook pointer
+- the CLI can trigger the guarded hidden-grab helper directly with `-recover-hidden dry-run|restart`
 
 Examples:
 
@@ -428,6 +430,7 @@ Why this matters:
 - the same feed can be reused across Plex, Emby, and Jellyfin
 - when a replay-capable source exists, the same workflow can now publish real replay `.strm` targets instead of only live launchers
 - duplicate programme rows that share the same `dna_id + start + title` are now curated down to the richer capsule before export/publish
+- for sources without replay URLs, `catchup-record` can now record current in-progress capsules to local TS files and a record manifest
 
 Live-validated on the cluster:
 - Emby catch-up publish created lane libraries and on-disk `.strm + .nfo` content on the server PVC

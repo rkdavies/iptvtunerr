@@ -86,3 +86,20 @@ func TestAutopilotStoreHotDecisionAndReport(t *testing.T) {
 		t.Fatalf("preferred_host=%q want preferred.example", rep.HotChannels[0].PreferredHost)
 	}
 }
+
+func TestAutopilotStoreFailureStreakSuppressesReuse(t *testing.T) {
+	store := &autopilotStore{byKey: map[string]autopilotDecision{}}
+	store.put(autopilotDecision{DNAID: "dna:test", ClientClass: "web", Profile: profilePlexSafe, Transcode: true})
+	store.fail("dna:test", "web")
+	store.fail("dna:test", "web")
+	row, ok := store.get("dna:test", "web")
+	if !ok {
+		t.Fatal("expected decision")
+	}
+	if row.FailureStreak != 2 {
+		t.Fatalf("failure_streak=%d want 2", row.FailureStreak)
+	}
+	if row.Failures != 2 {
+		t.Fatalf("failures=%d want 2", row.Failures)
+	}
+}

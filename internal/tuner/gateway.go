@@ -315,12 +315,14 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if upstreamConcurrencyLimited {
+		g.rememberAutopilotFailure(channel, clientClass)
 		log.Printf("gateway: req=%s channel=%q id=%s upstream concurrency limit hit; surfacing all-tuners-in-use to client",
 			reqID, channel.GuideName, channelID)
 		w.Header().Set("X-HDHomeRun-Error", "805")
 		http.Error(w, "All tuners in use", http.StatusServiceUnavailable)
 		return
 	}
+	g.rememberAutopilotFailure(channel, clientClass)
 	log.Printf("gateway: channel=%q id=%s all %d upstream(s) failed dur=%s", channel.GuideName, channelID, len(urls), time.Since(start).Round(time.Millisecond))
 	http.Error(w, "All upstreams failed", http.StatusBadGateway)
 }

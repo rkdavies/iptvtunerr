@@ -303,6 +303,7 @@ Common flags:
 - `-observe`
 - `-poll`
 - `-stop`
+- `-recover-hidden dry-run|restart`
 - `-machine-id`
 - `-player-ip`
 
@@ -442,6 +443,25 @@ Operational note:
 - without a replay template, published items are near-live launchers and each `.strm` points back to `IPTV_TUNERR_BASE_URL/stream/<channel>`
 - with a replay template, published items become source-backed replay launchers for the programme window
 - rerun the publisher on a schedule to keep the lane libraries current
+
+## `iptv-tunerr catchup-record`
+
+Record current in-progress capsules to local TS files for sources that do not already provide replay URLs.
+
+Common flags:
+- `-catalog`
+- `-xmltv`
+- `-horizon`
+- `-limit`
+- `-out-dir`
+- `-stream-base-url`
+- `-max-duration`
+- `-guide-policy`
+- `-replay-url-template`
+
+Output:
+- one `.ts` file per recorded in-progress capsule
+- `record-manifest.json`
 
 Replay template variables:
 - `{capsule_id}`
@@ -612,6 +632,7 @@ Probe method:
 - `IPTV_TUNERR_FFMPEG_HLS_RECONNECT` — when `true`, adds HLS reconnect flags to ffmpeg (`-reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1`). Helps with providers whose HLS segment URLs expire mid-stream.
 - `IPTV_TUNERR_CLIENT_ADAPT` — when `true`, resolve the Plex client from the active session and force websafe (transcode + MP3 audio) for web/browser clients and for internal fetchers (Lavf/PMS). Ensures Chrome and Firefox get compatible audio without transcoding non-browser clients.
 - `IPTV_TUNERR_AUTOPILOT_STATE_FILE` — optional JSON file for remembered playback decisions keyed by `dna_id + client_class`; when enabled, successful stream choices can be reused on later requests before generic adaptation rules, including the last known-good upstream URL/host.
+- `IPTV_TUNERR_AUTOPILOT_MAX_FAILURE_STREAK` — maximum remembered failure streak before a stored Autopilot decision stops being reused automatically (default `2`)
 - `IPTV_TUNERR_HOT_START_ENABLED` — enable hot-start tuning for favorite/high-hit channels (default `true`)
 - `IPTV_TUNERR_HOT_START_CHANNELS` — comma-separated explicit favorites by `channel_id`, `dna_id`, `guide_number`, or exact `guide_name`
 - `IPTV_TUNERR_HOT_START_MIN_HITS` — minimum remembered Autopilot hits before a channel becomes hot automatically (default `3`)

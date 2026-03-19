@@ -258,6 +258,14 @@
   2. curate catch-up capsules so duplicate programme rows collapse to the richer candidate before export/publish
   3. improve Ghost Hunter output so visible-stale vs hidden-grab cases recommend different next safe actions
   4. keep docs/changelog/env/memory-bank aligned and verify before pushing
+
+**Current focus shift (final backlog hard-boundary pass, 2026-03-18):**
+- User explicitly asked to finish the remaining big-ticket backlog now rather than leave them as future notes.
+- This pass covers:
+  1. add a real recorder-backed catch-up command for non-replay sources
+  2. extend Autopilot memory so failures are tracked and stale remembered decisions stop being reused
+  3. add a CLI recovery hook so Ghost Hunter can invoke the guarded hidden-grab helper directly
+  4. keep docs/changelog/env/memory-bank aligned and verify before pushing
 - README was rewritten so the front page explains why the features matter operationally, not just that they exist.
 
 **Current focus shift (remaining product-facing intelligence surfaces, 2026-03-18):**
