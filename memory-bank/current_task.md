@@ -48,6 +48,14 @@
   3. preserve the orchestration in `relayHLSWithFFmpeg` / `relayHLSAsTS`
   4. verify and push if green
 
+**Current focus shift (gateway stream helper split, 2026-03-18):**
+- Continuing `INT-006` with the lower-level stream mechanics block.
+- This pass covers:
+  1. move TS discontinuity splice helpers into a dedicated file
+  2. move startup-signal / adaptive-buffer helpers there too
+  3. keep request handling and relay orchestration in `gateway.go`
+  4. verify and push if green
+
 **Current focus shift (EPG doctor operator docs, 2026-03-18):**
 - Follow-on docs cleanup after shipping `guide-health` and `epg-doctor`: make the new guide-diagnostics workflow discoverable from the how-to and runbook indexes so operators have one documented path from symptom to fix.
 - This pass adds:

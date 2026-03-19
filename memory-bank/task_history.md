@@ -23,6 +23,21 @@ Append-only. One entry per completed task.
 ## Entries
 
 - Date: 2026-03-18
+  Title: Split gateway stream mechanics into a focused helper file
+  Summary:
+    - Moved TS discontinuity splice helpers, startup-signal detection, adaptive stream buffering, and null-TS keepalive support into `internal/tuner/gateway_stream_helpers.go`.
+    - Left `gateway.go` focused more tightly on request lifecycle and relay orchestration.
+  Verification:
+    - `go test ./internal/tuner`
+    - `./scripts/verify`
+  Notes:
+    - This continues the structural-only gateway decomposition without changing request handling or tuning policy.
+  Opportunities filed:
+    - none
+  Links:
+    - internal/tuner/gateway.go, internal/tuner/gateway_stream_helpers.go
+
+- Date: 2026-03-18
   Title: Split gateway ffmpeg relay helpers into a focused file
   Summary:
     - Moved ffmpeg relay output writer types, stdin-normalizer support, and bootstrap TS generation out of `internal/tuner/gateway.go` into `gateway_ffmpeg_relay.go`.
