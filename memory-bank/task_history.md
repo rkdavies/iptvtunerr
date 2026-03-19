@@ -23,6 +23,21 @@ Append-only. One entry per completed task.
 ## Entries
 
 - Date: 2026-03-18
+  Title: Split CLI runtime handlers out of cmd_core.go
+  Summary:
+    - Moved `handleServe` and `handleRun` into `cmd/iptv-tunerr/cmd_runtime.go`.
+    - Reduced `cmd/iptv-tunerr/cmd_core.go` to the remaining core non-runtime commands while preserving command behavior.
+  Verification:
+    - `go test ./cmd/iptv-tunerr`
+    - `./scripts/verify`
+  Notes:
+    - This continues the CLI cleanup by aligning the runtime-serving path with its own file instead of keeping it inside the broader core command bucket.
+  Opportunities filed:
+    - none
+  Links:
+    - cmd/iptv-tunerr/cmd_core.go, cmd/iptv-tunerr/cmd_runtime.go
+
+- Date: 2026-03-18
   Title: Split CLI media-server helpers out of main.go
   Summary:
     - Moved Plex/Emby/Jellyfin catch-up library registration helpers into `cmd/iptv-tunerr/cmd_media_servers.go`.

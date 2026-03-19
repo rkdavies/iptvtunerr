@@ -96,6 +96,14 @@
   2. keep `main.go` down to bootstrap, usage, and tiny generic helpers
   3. verify and push if green
 
+**Current focus shift (CLI runtime helper split, 2026-03-18):**
+- Continuing the CLI decomposition after the catalog and media-server helper splits.
+- This pass covers:
+  1. move `handleServe` and `handleRun` out of `cmd_core.go` into a dedicated runtime file
+  2. leave `cmd_core.go` focused on the remaining core non-runtime commands
+  3. preserve all command behavior while shrinking the remaining hotspot
+  4. verify and push if green
+
 **Current focus shift (EPG doctor operator docs, 2026-03-18):**
 - Follow-on docs cleanup after shipping `guide-health` and `epg-doctor`: make the new guide-diagnostics workflow discoverable from the how-to and runbook indexes so operators have one documented path from symptom to fix.
 - This pass adds:
