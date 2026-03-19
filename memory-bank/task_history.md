@@ -23,6 +23,22 @@ Append-only. One entry per completed task.
 ## Entries
 
 - Date: 2026-03-18
+  Title: Add Autopilot hot-start and reporting
+  Summary:
+    - Added `autopilot-report` plus `/autopilot/report.json` so operators can inspect remembered decisions and the hottest channels by hit count.
+    - Added hot-start tuning for favorite or high-hit channels on the ffmpeg HLS path, using more aggressive startup thresholds and keepalive/bootstrap settings.
+    - Updated README, features, reference docs, changelog, env example, and current-task tracking for the new Autopilot surfaces.
+  Verification:
+    - `go test ./internal/tuner ./cmd/iptv-tunerr`
+    - `./scripts/verify`
+  Notes:
+    - Hot-start remains explicit and evidence-driven: it only activates from `IPTV_TUNERR_HOT_START_CHANNELS` or remembered Autopilot hit counts.
+  Opportunities filed:
+    - none
+  Links:
+    - internal/tuner/autopilot.go, internal/tuner/gateway_hotstart.go, internal/tuner/gateway_relay.go, internal/tuner/server.go, cmd/iptv-tunerr/cmd_reports.go
+
+- Date: 2026-03-18
   Title: Add intent lineup recipes
   Summary:
     - Extended `IPTV_TUNERR_LINEUP_RECIPE` with `sports_now`, `kids_safe`, and `locals_first` so operators can expose intent-focused lineups instead of only score-sorted ones.

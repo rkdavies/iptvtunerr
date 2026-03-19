@@ -301,6 +301,18 @@ Enable it with:
 IPTV_TUNERR_AUTOPILOT_STATE_FILE=/var/lib/iptvtunerr/autopilot.json
 ```
 
+Autopilot now also exposes a lightweight operator report:
+
+```bash
+iptv-tunerr autopilot-report -state-file /var/lib/iptvtunerr/autopilot.json
+curl -s http://127.0.0.1:5004/autopilot/report.json | jq
+```
+
+And it can now feed hot-start behavior:
+- channels with repeated successful Autopilot hits can automatically get a more aggressive startup profile
+- explicit favorites can be marked with `IPTV_TUNERR_HOT_START_CHANNELS`
+- the ffmpeg HLS startup gate then uses lower startup thresholds and stronger keepalive/bootstrap for those channels
+
 ### Ghost Hunter
 
 Ghost Hunter is aimed at one of the nastiest Plex support loops: playback looks dead, but something is still holding on to the session.
@@ -550,6 +562,7 @@ Config reference: [`docs/reference/testing-and-supervisor-config.md`](docs/refer
 | `supervise` | Run multiple child tuner instances from a JSON config |
 | `channel-report` | Score channels by guide confidence, stream resilience, and EPG match quality |
 | `channel-leaderboard` | Hall of fame/shame plus guide-risk and stream-risk channel leaderboards |
+| `autopilot-report` | Show remembered Autopilot decisions and hottest channels |
 | `guide-health` | Diagnose real guide coverage, placeholder-only channels, and XMLTV match quality |
 | `epg-doctor` | Run the combined EPG diagnosis workflow in one report |
 | `channel-dna-report` | Group channels by stable cross-provider `dna_id` identity |

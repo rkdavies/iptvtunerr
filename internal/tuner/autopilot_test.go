@@ -48,3 +48,37 @@ func TestAutopilotStorePersistsAndReloads(t *testing.T) {
 		t.Fatalf("expected updated timestamp")
 	}
 }
+
+func TestAutopilotStoreHotDecisionAndReport(t *testing.T) {
+	store := &autopilotStore{
+		byKey: map[string]autopilotDecision{
+			autopilotKey("dna:fox", "web"): {
+				DNAID:       "dna:fox",
+				ClientClass: "web",
+				Profile:     profileDashFast,
+				Transcode:   true,
+				Hits:        4,
+			},
+			autopilotKey("dna:cnn", "native"): {
+				DNAID:       "dna:cnn",
+				ClientClass: "native",
+				Profile:     profilePlexSafe,
+				Transcode:   false,
+				Hits:        2,
+			},
+		},
+	}
+	if _, ok := store.hotDecision("dna:fox", "web", 3); !ok {
+		t.Fatal("expected hot decision for dna:fox/web")
+	}
+	if _, ok := store.hotDecision("dna:cnn", "native", 3); ok {
+		t.Fatal("did not expect hot decision below threshold")
+	}
+	rep := store.report(1)
+	if rep.DecisionCount != 2 {
+		t.Fatalf("decision_count=%d want 2", rep.DecisionCount)
+	}
+	if len(rep.HotChannels) != 1 || rep.HotChannels[0].DNAID != "dna:fox" {
+		t.Fatalf("unexpected hot channels=%+v", rep.HotChannels)
+	}
+}

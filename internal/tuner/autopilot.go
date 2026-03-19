@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -23,6 +24,23 @@ type autopilotStore struct {
 	path  string
 	mu    sync.Mutex
 	byKey map[string]autopilotDecision
+}
+
+type autopilotHotEntry struct {
+	DNAID       string `json:"dna_id"`
+	ClientClass string `json:"client_class"`
+	Hits        int    `json:"hits"`
+	Profile     string `json:"profile,omitempty"`
+	Transcode   bool   `json:"transcode"`
+	UpdatedAt   string `json:"updated_at,omitempty"`
+}
+
+type AutopilotReport struct {
+	GeneratedAt   string              `json:"generated_at"`
+	Enabled       bool                `json:"enabled"`
+	StateFile     string              `json:"state_file,omitempty"`
+	DecisionCount int                 `json:"decision_count"`
+	HotChannels   []autopilotHotEntry `json:"hot_channels"`
 }
 
 func loadAutopilotStore(path string) (*autopilotStore, error) {
@@ -126,4 +144,72 @@ func autopilotKey(dnaID, clientClass string) string {
 		return ""
 	}
 	return dnaID + "|" + clientClass
+}
+
+func (s *autopilotStore) hotDecision(dnaID, clientClass string, minHits int) (autopilotDecision, bool) {
+	if s == nil || minHits <= 0 {
+		return autopilotDecision{}, false
+	}
+	row, ok := s.get(dnaID, clientClass)
+	if !ok || row.Hits < minHits {
+		return autopilotDecision{}, false
+	}
+	return row, true
+}
+
+func (s *autopilotStore) hottest(limit int) []autopilotHotEntry {
+	if s == nil {
+		return nil
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	rows := make([]autopilotHotEntry, 0, len(s.byKey))
+	for _, row := range s.byKey {
+		rows = append(rows, autopilotHotEntry{
+			DNAID:       row.DNAID,
+			ClientClass: row.ClientClass,
+			Hits:        row.Hits,
+			Profile:     row.Profile,
+			Transcode:   row.Transcode,
+			UpdatedAt:   row.UpdatedAt,
+		})
+	}
+	sort.Slice(rows, func(i, j int) bool {
+		if rows[i].Hits == rows[j].Hits {
+			if rows[i].DNAID == rows[j].DNAID {
+				return rows[i].ClientClass < rows[j].ClientClass
+			}
+			return rows[i].DNAID < rows[j].DNAID
+		}
+		return rows[i].Hits > rows[j].Hits
+	})
+	if limit > 0 && len(rows) > limit {
+		rows = rows[:limit]
+	}
+	return rows
+}
+
+func (s *autopilotStore) report(limit int) AutopilotReport {
+	if limit <= 0 {
+		limit = 10
+	}
+	rep := AutopilotReport{
+		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
+		Enabled:     s != nil,
+	}
+	if s == nil {
+		return rep
+	}
+	rep.StateFile = s.path
+	rep.DecisionCount = len(s.byKey)
+	rep.HotChannels = s.hottest(limit)
+	return rep
+}
+
+func LoadAutopilotReport(path string, limit int) (AutopilotReport, error) {
+	store, err := loadAutopilotStore(strings.TrimSpace(path))
+	if err != nil {
+		return AutopilotReport{}, err
+	}
+	return store.report(limit), nil
 }

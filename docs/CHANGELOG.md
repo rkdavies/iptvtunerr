@@ -22,6 +22,7 @@ All notable changes to IPTV Tunerr are documented here. Repo: [github.com/snapet
 - **Intent lineup recipes**: `IPTV_TUNERR_LINEUP_RECIPE` now includes `sports_now`, `kids_safe`, and `locals_first` in addition to the earlier score-based recipes.
 - **Registration recipes**: added `IPTV_TUNERR_REGISTER_RECIPE` / `run -register-recipe` so Plex, Emby, and Jellyfin registration can now reuse channel-intelligence scoring instead of blindly syncing catalog order.
 - **Source-backed catch-up replay mode**: `catchup-capsules`, `/guide/capsules.json`, and `catchup-publish` now support `IPTV_TUNERR_CATCHUP_REPLAY_URL_TEMPLATE`, which renders programme-window replay URLs when a real replay-capable source exists instead of pretending the live launcher is a recording.
+- **Autopilot hot-start**: added `autopilot-report` plus `/autopilot/report.json`, and hot-start tuning now lets favorite or high-hit channels use more aggressive ffmpeg startup thresholds/keepalive on the HLS path.
 - **Shared ref loader**: report and guide tooling now use one shared local-file/URL loader with the repo HTTP client defaults instead of duplicated `http.DefaultClient` code paths.
 
 ### Ingest / probe

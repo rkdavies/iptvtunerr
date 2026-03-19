@@ -854,6 +854,7 @@ func (s *Server) Run(ctx context.Context) error {
 	mux.Handle("/channels/report.json", s.serveChannelReport())
 	mux.Handle("/channels/leaderboard.json", s.serveChannelLeaderboard())
 	mux.Handle("/channels/dna.json", s.serveChannelDNAReport())
+	mux.Handle("/autopilot/report.json", s.serveAutopilotReport())
 	mux.Handle("/plex/ghost-report.json", s.serveGhostHunterReport())
 	mux.Handle("/provider/profile.json", s.serveProviderProfile())
 
@@ -990,6 +991,30 @@ func (s *Server) serveChannelDNAReport() http.Handler {
 		body, err := json.MarshalIndent(channeldna.BuildReport(s.Channels), "", "  ")
 		if err != nil {
 			http.Error(w, `{"error":"encode dna report"}`, http.StatusInternalServerError)
+			return
+		}
+		_, _ = w.Write(body)
+	})
+}
+
+func (s *Server) serveAutopilotReport() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		limit := 10
+		if raw := strings.TrimSpace(r.URL.Query().Get("limit")); raw != "" {
+			if n, err := strconv.Atoi(raw); err == nil && n > 0 {
+				limit = n
+			}
+		}
+		var rep AutopilotReport
+		if s.gateway != nil && s.gateway.Autopilot != nil {
+			rep = s.gateway.Autopilot.report(limit)
+		} else {
+			rep = AutopilotReport{GeneratedAt: time.Now().UTC().Format(time.RFC3339)}
+		}
+		body, err := json.MarshalIndent(rep, "", "  ")
+		if err != nil {
+			http.Error(w, `{"error":"encode autopilot report"}`, http.StatusInternalServerError)
 			return
 		}
 		_, _ = w.Write(body)

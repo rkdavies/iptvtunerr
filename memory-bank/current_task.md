@@ -243,6 +243,14 @@
   2. add built-in `sports_now`, `kids_safe`, and `locals_first` recipes
   3. verify the filters/reordering with tuner tests
   4. update docs/changelog/memory-bank and push if green
+
+**Current focus shift (Autopilot hot-start + report, 2026-03-18):**
+- Continuing the backlog after the lineup presets.
+- This pass covers the next Autopilot slice:
+  1. expose remembered decisions and hottest channels via CLI + HTTP
+  2. let favorite/high-hit channels trigger a more aggressive HLS startup profile
+  3. keep the hot-start logic evidence-based (explicit favorites or remembered hits), not opaque
+  4. update docs/changelog/env/memory-bank and verify before push
 - User called out that the README was listing features without explaining why an operator should care.
 - This docs pass rewrites the front-page README around:
   1. real IPTV pain points

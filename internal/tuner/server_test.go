@@ -148,6 +148,46 @@ func TestServer_channelDNAReport(t *testing.T) {
 	}
 }
 
+func TestServer_autopilotReport(t *testing.T) {
+	s := &Server{
+		gateway: &Gateway{
+			Autopilot: &autopilotStore{
+				byKey: map[string]autopilotDecision{
+					autopilotKey("dna:fox", "web"): {
+						DNAID:       "dna:fox",
+						ClientClass: "web",
+						Hits:        4,
+						Profile:     profileDashFast,
+						Transcode:   true,
+					},
+				},
+			},
+		},
+	}
+	req := httptest.NewRequest(http.MethodGet, "/autopilot/report.json?limit=1", nil)
+	w := httptest.NewRecorder()
+	s.serveAutopilotReport().ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status=%d want 200", w.Code)
+	}
+	var body struct {
+		DecisionCount int `json:"decision_count"`
+		HotChannels   []struct {
+			DNAID string `json:"dna_id"`
+			Hits  int    `json:"hits"`
+		} `json:"hot_channels"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if body.DecisionCount != 1 {
+		t.Fatalf("decision_count=%d want 1", body.DecisionCount)
+	}
+	if len(body.HotChannels) != 1 || body.HotChannels[0].DNAID != "dna:fox" {
+		t.Fatalf("unexpected hot_channels=%+v", body.HotChannels)
+	}
+}
+
 func TestServer_providerProfile(t *testing.T) {
 	s := &Server{
 		gateway: &Gateway{

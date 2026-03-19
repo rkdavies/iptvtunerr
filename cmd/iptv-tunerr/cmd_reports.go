@@ -43,6 +43,10 @@ func reportCommands() []commandSpec {
 	ghostHunterMachineID := ghostHunterCmd.String("machine-id", strings.TrimSpace(os.Getenv("IPTV_TUNERR_PLEX_SESSION_REAPER_MACHINE_ID")), "Optional client machineIdentifier scope")
 	ghostHunterPlayerIP := ghostHunterCmd.String("player-ip", strings.TrimSpace(os.Getenv("IPTV_TUNERR_PLEX_SESSION_REAPER_PLAYER_IP")), "Optional player IP scope")
 
+	autopilotReportCmd := flag.NewFlagSet("autopilot-report", flag.ExitOnError)
+	autopilotReportStateFile := autopilotReportCmd.String("state-file", strings.TrimSpace(os.Getenv("IPTV_TUNERR_AUTOPILOT_STATE_FILE")), "Autopilot JSON state file")
+	autopilotReportLimit := autopilotReportCmd.Int("limit", 10, "Max hot channels to include")
+
 	catchupCapsulesCmd := flag.NewFlagSet("catchup-capsules", flag.ExitOnError)
 	catchupCapsulesCatalog := catchupCapsulesCmd.String("catalog", "", "Input catalog.json (default: IPTV_TUNERR_CATALOG)")
 	catchupCapsulesXMLTV := catchupCapsulesCmd.String("xmltv", "", "Guide/XMLTV file path or http(s) URL (required; /guide.xml works well)")
@@ -69,6 +73,10 @@ func reportCommands() []commandSpec {
 		{Name: "ghost-hunter", Section: "Guide/EPG", Summary: "Observe Plex Live TV sessions, classify stalls, optionally stop stale ones", FlagSet: ghostHunterCmd, Run: func(_ *config.Config, args []string) {
 			_ = ghostHunterCmd.Parse(args)
 			handleGhostHunter(*ghostHunterPMSURL, *ghostHunterToken, *ghostHunterObserve, *ghostHunterPoll, *ghostHunterStop, *ghostHunterMachineID, *ghostHunterPlayerIP)
+		}},
+		{Name: "autopilot-report", Section: "Guide/EPG", Summary: "Show remembered Autopilot decisions and hottest channels", FlagSet: autopilotReportCmd, Run: func(_ *config.Config, args []string) {
+			_ = autopilotReportCmd.Parse(args)
+			handleAutopilotReport(*autopilotReportStateFile, *autopilotReportLimit)
 		}},
 		{Name: "catchup-capsules", Section: "Guide/EPG", Summary: "Export near-live capsule candidates from guide XML/guide.xml", FlagSet: catchupCapsulesCmd, Run: func(cfg *config.Config, args []string) {
 			_ = catchupCapsulesCmd.Parse(args)
@@ -141,6 +149,16 @@ func handleGhostHunter(pmsURL, token string, observe, poll time.Duration, stop b
 	rep, err := tuner.RunGhostHunter(context.Background(), ghCfg, stop, nil)
 	if err != nil {
 		log.Printf("Ghost Hunter failed: %v", err)
+		os.Exit(1)
+	}
+	data, _ := json.MarshalIndent(rep, "", "  ")
+	fmt.Println(string(data))
+}
+
+func handleAutopilotReport(stateFile string, limit int) {
+	rep, err := tuner.LoadAutopilotReport(strings.TrimSpace(stateFile), limit)
+	if err != nil {
+		log.Printf("Load autopilot state failed: %v", err)
 		os.Exit(1)
 	}
 	data, _ := json.MarshalIndent(rep, "", "  ")

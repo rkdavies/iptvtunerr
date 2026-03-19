@@ -461,6 +461,42 @@ func TestGateway_requestAdaptation_autopilotMemoryWins(t *testing.T) {
 	}
 }
 
+func TestGateway_hotStartConfigFromAutopilotHits(t *testing.T) {
+	t.Setenv("IPTV_TUNERR_HOT_START_ENABLED", "true")
+	t.Setenv("IPTV_TUNERR_HOT_START_MIN_HITS", "3")
+	g := &Gateway{
+		Autopilot: &autopilotStore{
+			byKey: map[string]autopilotDecision{
+				autopilotKey("dna:test", "web"): {
+					DNAID:       "dna:test",
+					ClientClass: "web",
+					Hits:        4,
+				},
+			},
+		},
+	}
+	cfg := g.hotStartConfig(&catalog.LiveChannel{DNAID: "dna:test", ChannelID: "1001", GuideNumber: "101"}, "web")
+	if !cfg.Enabled {
+		t.Fatal("expected hot-start enabled")
+	}
+	if cfg.Reason != "autopilot_hits" {
+		t.Fatalf("reason=%q want autopilot_hits", cfg.Reason)
+	}
+}
+
+func TestGateway_hotStartConfigFromFavoriteList(t *testing.T) {
+	t.Setenv("IPTV_TUNERR_HOT_START_ENABLED", "true")
+	t.Setenv("IPTV_TUNERR_HOT_START_CHANNELS", "1001,fox news")
+	g := &Gateway{}
+	cfg := g.hotStartConfig(&catalog.LiveChannel{ChannelID: "1001", GuideName: "FOX News"}, "web")
+	if !cfg.Enabled {
+		t.Fatal("expected favorite hot-start enabled")
+	}
+	if cfg.Reason != "favorite" {
+		t.Fatalf("reason=%q want favorite", cfg.Reason)
+	}
+}
+
 func TestGateway_shouldAutoEnableHLSReconnect(t *testing.T) {
 	t.Setenv("IPTV_TUNERR_PROVIDER_AUTOTUNE", "true")
 	_ = os.Unsetenv("IPTV_TUNERR_FFMPEG_HLS_RECONNECT")

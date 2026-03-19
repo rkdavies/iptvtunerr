@@ -305,6 +305,17 @@ Common flags:
 - `-machine-id`
 - `-player-ip`
 
+## `iptv-tunerr autopilot-report`
+
+Export remembered Autopilot decisions and the hottest channels by hit count.
+
+Common flags:
+- `-state-file`
+- `-limit`
+
+Also available live over HTTP:
+- `GET /autopilot/report.json`
+
 Live endpoint:
 - `GET /plex/ghost-report.json`
 
@@ -591,6 +602,13 @@ Probe method:
 - `IPTV_TUNERR_FFMPEG_HLS_RECONNECT` — when `true`, adds HLS reconnect flags to ffmpeg (`-reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1`). Helps with providers whose HLS segment URLs expire mid-stream.
 - `IPTV_TUNERR_CLIENT_ADAPT` — when `true`, resolve the Plex client from the active session and force websafe (transcode + MP3 audio) for web/browser clients and for internal fetchers (Lavf/PMS). Ensures Chrome and Firefox get compatible audio without transcoding non-browser clients.
 - `IPTV_TUNERR_AUTOPILOT_STATE_FILE` — optional JSON file for remembered playback decisions keyed by `dna_id + client_class`; when enabled, successful stream choices can be reused on later requests before generic adaptation rules.
+- `IPTV_TUNERR_HOT_START_ENABLED` — enable hot-start tuning for favorite/high-hit channels (default `true`)
+- `IPTV_TUNERR_HOT_START_CHANNELS` — comma-separated explicit favorites by `channel_id`, `dna_id`, `guide_number`, or exact `guide_name`
+- `IPTV_TUNERR_HOT_START_MIN_HITS` — minimum remembered Autopilot hits before a channel becomes hot automatically (default `3`)
+- `IPTV_TUNERR_HOT_START_MIN_BYTES` — lower startup-gate byte threshold for hot channels (default `24576`)
+- `IPTV_TUNERR_HOT_START_TIMEOUT_MS` — lower startup-gate timeout for hot channels (default `15000`)
+- `IPTV_TUNERR_HOT_START_BOOTSTRAP_SECONDS` — bootstrap burst duration for hot channels (default `2.0`)
+- `IPTV_TUNERR_HOT_START_PROGRAM_KEEPALIVE` — enable PAT/PMT keepalive automatically for hot channels (default `true`)
 - `IPTV_TUNERR_FORCE_WEBSAFE` — when `true`, always transcode with MP3 audio regardless of client. Use if client detection misclassifies a browser client or after a Plex update changes the session UA.
 - `IPTV_TUNERR_STRIP_STREAM_HOSTS` — comma-separated hostnames (e.g. `cf.like-cdn.com,like-cdn.com`) whose stream URLs are removed at catalog build time. Channels with only stripped hosts are dropped entirely so the tuner never attempts CF-blocked endpoints.
 

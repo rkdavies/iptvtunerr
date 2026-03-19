@@ -99,6 +99,7 @@ func (g *Gateway) relayHLSWithFFmpeg(
 	transcode bool,
 	bufferBytes int,
 	forcedProfile string,
+	hotStart hotStartConfig,
 ) error {
 	reqField := gatewayReqIDField(r.Context())
 	profile := g.profileForChannelMeta(channelID, guideNumber, tvgID)
@@ -190,6 +191,11 @@ func (g *Gateway) relayHLSWithFFmpeg(
 	nullTSKeepalivePackets := getenvInt("IPTV_TUNERR_WEBSAFE_NULL_TS_KEEPALIVE_PACKETS", 1)
 	enableProgramKeepalive := transcode && getenvBool("IPTV_TUNERR_WEBSAFE_PROGRAM_KEEPALIVE", false)
 	programKeepaliveMs := getenvInt("IPTV_TUNERR_WEBSAFE_PROGRAM_KEEPALIVE_MS", 500)
+	startupMin, startupTimeoutMs, bootstrapSec, enableProgramKeepalive = applyHotStartOverrides(startupMin, startupTimeoutMs, bootstrapSec, enableProgramKeepalive, hotStart)
+	if hotStart.Enabled {
+		log.Printf("gateway:%s channel=%q id=%s %s hot-start %s bootstrap_sec=%.2f keepalive=%t",
+			reqField, channelName, channelID, modeLabel, hotStartSummary(hotStart), bootstrapSec, enableProgramKeepalive)
+	}
 	if enableProgramKeepalive && enableNullTSKeepalive {
 		enableNullTSKeepalive = false
 		log.Printf("gateway:%s channel=%q id=%s %s keepalive-select program=true null=false reason=program-priority",
