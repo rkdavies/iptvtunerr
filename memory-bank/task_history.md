@@ -23,6 +23,21 @@ Append-only. One entry per completed task.
 ## Entries
 
 - Date: 2026-03-18
+  Title: Split gateway debug helpers into a focused file
+  Summary:
+    - Moved stream-debug env parsing, header logging, capped tee-file helpers, and the wrapped debug response writer into `internal/tuner/gateway_debug.go`.
+    - Further reduced `gateway.go` so observability utilities no longer sit inline with the request/relay control path.
+  Verification:
+    - `go test ./internal/tuner`
+    - `./scripts/verify`
+  Notes:
+    - Another structural-only `INT-006` slice; request handling behavior was preserved.
+  Opportunities filed:
+    - none
+  Links:
+    - internal/tuner/gateway.go, internal/tuner/gateway_debug.go
+
+- Date: 2026-03-18
   Title: Split gateway stream mechanics into a focused helper file
   Summary:
     - Moved TS discontinuity splice helpers, startup-signal detection, adaptive stream buffering, and null-TS keepalive support into `internal/tuner/gateway_stream_helpers.go`.
