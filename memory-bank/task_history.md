@@ -23,6 +23,21 @@ Append-only. One entry per completed task.
 ## Entries
 
 - Date: 2026-03-18
+  Title: Split CLI media-server helpers out of main.go
+  Summary:
+    - Moved Plex/Emby/Jellyfin catch-up library registration helpers into `cmd/iptv-tunerr/cmd_media_servers.go`.
+    - Reduced `cmd/iptv-tunerr/main.go` to bootstrap, usage output, and a few tiny shared helpers.
+  Verification:
+    - `go test ./cmd/iptv-tunerr`
+    - `./scripts/verify`
+  Notes:
+    - This keeps the CLI cleanup moving without changing command behavior.
+  Opportunities filed:
+    - none
+  Links:
+    - cmd/iptv-tunerr/main.go, cmd/iptv-tunerr/cmd_media_servers.go
+
+- Date: 2026-03-18
   Title: Split CLI catalog and EPG-repair helpers out of main.go
   Summary:
     - Moved catalog ingest, direct-M3U/provider fallback handling, stream-host filtering, runtime EPG repair helpers, and catch-up preview loading into `cmd/iptv-tunerr/cmd_catalog.go`.

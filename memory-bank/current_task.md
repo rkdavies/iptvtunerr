@@ -89,6 +89,13 @@
   3. keep `main.go` as bootstrap + generic media-server helpers
   4. verify and push if green
 
+**Current focus shift (CLI media-server helper split, 2026-03-18):**
+- Continuing the same entrypoint cleanup now that catalog helpers are out.
+- This pass covers:
+  1. move Plex/Emby/Jellyfin catch-up library registration helpers out of `main.go`
+  2. keep `main.go` down to bootstrap, usage, and tiny generic helpers
+  3. verify and push if green
+
 **Current focus shift (EPG doctor operator docs, 2026-03-18):**
 - Follow-on docs cleanup after shipping `guide-health` and `epg-doctor`: make the new guide-diagnostics workflow discoverable from the how-to and runbook indexes so operators have one documented path from symptom to fix.
 - This pass adds:
