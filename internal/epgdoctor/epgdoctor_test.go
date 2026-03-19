@@ -8,25 +8,49 @@ import (
 	"github.com/snapetech/iptvtunerr/internal/guidehealth"
 )
 
-func TestBuildSummarizesGuideAndMatchState(t *testing.T) {
+func TestSuggestedAliasOverrides_OnlyHealthyNameExactMatches(t *testing.T) {
 	gh := guidehealth.Report{
-		SourceReady: true,
-		Summary: guidehealth.Summary{
-			TotalChannels:              3,
-			ChannelsWithRealProgrammes: 1,
-			PlaceholderOnlyChannels:    1,
-			NoProgrammeChannels:        1,
+		Channels: []guidehealth.ChannelHealth{
+			{ChannelID: "1", GuideName: "FOX News Channel US", HasRealProgrammes: true},
+			{ChannelID: "2", GuideName: "Movie Max HD", HasRealProgrammes: false},
 		},
 	}
-	links := &epglink.Report{Matched: 2, Unmatched: 1}
-	rep := Build(gh, links, time.Date(2026, 3, 18, 18, 0, 0, 0, time.UTC))
-	if rep.Summary.TotalChannels != 3 {
-		t.Fatalf("total=%d want 3", rep.Summary.TotalChannels)
+	links := &epglink.Report{
+		Rows: []epglink.ChannelMatch{
+			{ChannelID: "1", GuideName: "FOX News Channel US", Matched: true, MatchedXMLTV: "foxnews.us", Method: epglink.MatchNormalizedNameExact},
+			{ChannelID: "2", GuideName: "Movie Max HD", Matched: true, MatchedXMLTV: "moviemax.us", Method: epglink.MatchNormalizedNameExact},
+			{ChannelID: "3", GuideName: "CNN", Matched: true, MatchedXMLTV: "cnn.us", Method: epglink.MatchTVGIDExact},
+		},
 	}
-	if rep.Summary.MatchedChannels != 2 || rep.Summary.UnmatchedChannels != 1 {
-		t.Fatalf("match summary=%+v", rep.Summary)
+
+	got := SuggestedAliasOverrides(gh, links)
+	if len(got.NameToXMLTVID) != 1 {
+		t.Fatalf("aliases len=%d want 1", len(got.NameToXMLTVID))
 	}
-	if len(rep.Summary.TopFindings) == 0 {
-		t.Fatalf("expected top findings")
+	if got.NameToXMLTVID["FOX News Channel US"] != "foxnews.us" {
+		t.Fatalf("unexpected aliases=%v", got.NameToXMLTVID)
+	}
+}
+
+func TestBuild_SetsSuggestedAliasOverrideCount(t *testing.T) {
+	gh := guidehealth.Report{
+		Summary: guidehealth.Summary{
+			TotalChannels:              1,
+			ChannelsWithRealProgrammes: 1,
+		},
+		Channels: []guidehealth.ChannelHealth{
+			{ChannelID: "1", GuideName: "FOX News Channel US", HasRealProgrammes: true},
+		},
+	}
+	links := &epglink.Report{
+		Matched: 1,
+		Rows: []epglink.ChannelMatch{
+			{ChannelID: "1", GuideName: "FOX News Channel US", Matched: true, MatchedXMLTV: "foxnews.us", Method: epglink.MatchNormalizedNameExact},
+		},
+	}
+
+	rep := Build(gh, links, time.Now())
+	if rep.Summary.SuggestedAliasOverrides != 1 {
+		t.Fatalf("suggested_alias_overrides=%d want 1", rep.Summary.SuggestedAliasOverrides)
 	}
 }

@@ -203,6 +203,28 @@ Notes:
 - each reported channel now includes a persisted `dna_id`
 - the current Channel DNA foundation prefers real/repaired `TVGID`, then falls back to normalized channel identity inputs
 
+## `iptv-tunerr channel-leaderboard`
+
+Generate the short-form hall-of-fame / hall-of-shame view for the lineup.
+
+This is the fast operator surface when you do not want to read the full channel report first.
+
+Common flags:
+- `-catalog`
+- `-xmltv` (optional file path or `http(s)` URL)
+- `-aliases` (optional JSON alias override file)
+- `-limit` (rows per bucket; default `10`)
+- `-out` (optional JSON output file; otherwise stdout)
+
+Also available live over HTTP:
+- `GET /channels/leaderboard.json`
+
+Buckets:
+- `hall_of_fame`
+- `hall_of_shame`
+- `guide_risks`
+- `stream_risks`
+
 ## `iptv-tunerr guide-health`
 
 Generate a guide-health report for the actual merged guide output.
@@ -248,13 +270,16 @@ Common flags:
 - `-xmltv` (optional source XMLTV for deterministic match provenance)
 - `-aliases` (optional JSON alias override file)
 - `-out` (optional JSON output file; otherwise stdout)
+- `-write-aliases` (optional JSON output file containing suggested `name_to_xmltv_id` overrides from healthy normalized-name matches)
 
 Live endpoint:
 - `GET /guide/doctor.json`
+- `GET /guide/aliases.json`
 
 Use for:
 - one-shot EPG triage instead of manually comparing `epg-link-report` and `guide-health`
 - prioritizing whether the real problem is matching, programme coverage, or placeholder fallback
+- exporting reviewable alias overrides once a repaired match has proven it carries real programme blocks
 
 ## `iptv-tunerr channel-dna-report`
 
@@ -527,6 +552,13 @@ Probe method:
   - `off` = current permissive behavior
   - `healthy` = keep only channels with real programme rows once cached guide-health is available
   - `strict` = same as `healthy`, plus require a non-empty `TVGID`
+- `IPTV_TUNERR_REGISTER_RECIPE` — optional media-server registration recipe:
+  - `off` = register channels in current catalog order
+  - `balanced` = rank by combined guide + stream score
+  - `high_confidence` = bias registration order toward stronger guide-confidence channels
+  - `guide_first` = prefer guide confidence, then stream resilience
+  - `resilient` = prefer backup-stream resilience, then guide confidence
+  - `healthy` = like `high_confidence`, but also drops poor-tier channels before Plex/Emby/Jellyfin registration
 
 `IPTV_TUNERR_GUIDE_NUMBER_OFFSET`:
 - adds a per-instance channel/guide ID offset

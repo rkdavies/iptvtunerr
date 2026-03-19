@@ -23,6 +23,23 @@ Append-only. One entry per completed task.
 ## Entries
 
 - Date: 2026-03-18
+  Title: Ship the remaining product-facing intelligence surfaces
+  Summary:
+    - Added `epg-doctor -write-aliases` plus `/guide/aliases.json` so healthy normalized-name repairs can be exported as reviewable `name_to_xmltv_id` overrides.
+    - Added `channel-leaderboard` plus `/channels/leaderboard.json` for hall-of-fame, hall-of-shame, guide-risk, and stream-risk snapshots.
+    - Added `IPTV_TUNERR_REGISTER_RECIPE` / `run -register-recipe` so Plex, Emby, and Jellyfin registration can reuse channel-intelligence scoring instead of blindly registering catalog order.
+    - Updated README, features, reference docs, changelog, env example, and current-task tracking for the new operator surfaces.
+  Verification:
+    - `go test ./internal/epgdoctor ./internal/channelreport ./internal/tuner ./cmd/iptv-tunerr`
+    - `./scripts/verify`
+  Notes:
+    - Registration recipes are intentionally catalog/intelligence-score based; they improve ordering and optional pruning for registration flows without waiting on a heavier runtime guide-health prewarm redesign.
+  Opportunities filed:
+    - none
+  Links:
+    - internal/epgdoctor/epgdoctor.go, internal/channelreport/report.go, internal/tuner/server.go, cmd/iptv-tunerr/cmd_guide_reports.go, cmd/iptv-tunerr/cmd_reports.go, cmd/iptv-tunerr/cmd_runtime_register.go
+
+- Date: 2026-03-18
   Title: Split shared report input helpers into a support file
   Summary:
     - Added `cmd/iptv-tunerr/cmd_report_support.go` for shared live-catalog loading and optional XMLTV match-report loading.

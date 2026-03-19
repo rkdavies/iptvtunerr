@@ -38,6 +38,7 @@ func guideReportCommands() []commandSpec {
 	epgDoctorXMLTV := epgDoctorCmd.String("xmltv", "", "Optional source XMLTV file path or http(s) URL for deterministic match provenance")
 	epgDoctorAliases := epgDoctorCmd.String("aliases", "", "Optional alias override JSON (name_to_xmltv_id map)")
 	epgDoctorOut := epgDoctorCmd.String("out", "", "Optional JSON report output path (default: stdout)")
+	epgDoctorWriteAliases := epgDoctorCmd.String("write-aliases", "", "Optional alias override JSON output path built from healthy normalized-name matches")
 
 	return []commandSpec{
 		{Name: "guide-health", Section: "Guide/EPG", Summary: "Guide health report: actual programme coverage, placeholders, and XMLTV match status", FlagSet: guideHealthCmd, Run: func(cfg *config.Config, args []string) {
@@ -46,7 +47,7 @@ func guideReportCommands() []commandSpec {
 		}},
 		{Name: "epg-doctor", Section: "Guide/EPG", Summary: "One-shot EPG doctor: combine match analysis and real guide coverage", FlagSet: epgDoctorCmd, Run: func(cfg *config.Config, args []string) {
 			_ = epgDoctorCmd.Parse(args)
-			handleEPGDoctor(cfg, *epgDoctorCatalog, *epgDoctorGuide, *epgDoctorXMLTV, *epgDoctorAliases, *epgDoctorOut)
+			handleEPGDoctor(cfg, *epgDoctorCatalog, *epgDoctorGuide, *epgDoctorXMLTV, *epgDoctorAliases, *epgDoctorOut, *epgDoctorWriteAliases)
 		}},
 		{Name: "epg-link-report", Section: "Guide/EPG", Summary: "Coverage report: which channels are EPG-linked vs unlinked, and by what match", FlagSet: epgLinkReportCmd, Run: func(cfg *config.Config, args []string) {
 			_ = epgLinkReportCmd.Parse(args)
@@ -109,7 +110,7 @@ func handleGuideHealth(cfg *config.Config, catalogPath, guideRef, xmltvRef, alia
 	}
 }
 
-func handleEPGDoctor(cfg *config.Config, catalogPath, guideRef, xmltvRef, aliasesRef, outPath string) {
+func handleEPGDoctor(cfg *config.Config, catalogPath, guideRef, xmltvRef, aliasesRef, outPath, writeAliasesPath string) {
 	live, data, matchRep := loadGuideInputs(cfg, catalogPath, guideRef, xmltvRef, aliasesRef)
 	gh, err := guidehealth.Build(live, data, matchRep, time.Now())
 	if err != nil {
@@ -117,6 +118,15 @@ func handleEPGDoctor(cfg *config.Config, catalogPath, guideRef, xmltvRef, aliase
 		os.Exit(1)
 	}
 	rep := epgdoctor.Build(gh, matchRep, time.Now())
+	if p := strings.TrimSpace(writeAliasesPath); p != "" {
+		aliases := epgdoctor.SuggestedAliasOverrides(gh, matchRep)
+		aliasOut, _ := json.MarshalIndent(aliases, "", "  ")
+		if err := os.WriteFile(p, aliasOut, 0o600); err != nil {
+			log.Printf("Write alias overrides %s: %v", p, err)
+			os.Exit(1)
+		}
+		log.Printf("Wrote alias override suggestions: %s (%d entries)", p, len(aliases.NameToXMLTVID))
+	}
 	out, _ := json.MarshalIndent(rep, "", "  ")
 	if p := strings.TrimSpace(outPath); p != "" {
 		if err := os.WriteFile(p, out, 0o600); err != nil {

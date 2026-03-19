@@ -774,12 +774,14 @@ func (s *Server) Run(ctx context.Context) error {
 	mux.Handle("/guide.xml", xmltv)
 	mux.Handle("/guide/health.json", s.serveGuideHealth())
 	mux.Handle("/guide/doctor.json", s.serveEPGDoctor())
+	mux.Handle("/guide/aliases.json", s.serveSuggestedAliasOverrides())
 	mux.Handle("/guide/highlights.json", s.serveGuideHighlights())
 	mux.Handle("/guide/capsules.json", s.serveCatchupCapsules())
 	mux.Handle("/live.m3u", m3uServe)
 	mux.Handle("/stream/", gateway)
 	mux.Handle("/healthz", s.serveHealth())
 	mux.Handle("/channels/report.json", s.serveChannelReport())
+	mux.Handle("/channels/leaderboard.json", s.serveChannelLeaderboard())
 	mux.Handle("/channels/dna.json", s.serveChannelDNAReport())
 	mux.Handle("/plex/ghost-report.json", s.serveGhostHunterReport())
 	mux.Handle("/provider/profile.json", s.serveProviderProfile())
@@ -887,6 +889,24 @@ func (s *Server) serveChannelReport() http.Handler {
 		body, err := json.MarshalIndent(rep, "", "  ")
 		if err != nil {
 			http.Error(w, `{"error":"encode channel report"}`, http.StatusInternalServerError)
+			return
+		}
+		_, _ = w.Write(body)
+	})
+}
+
+func (s *Server) serveChannelLeaderboard() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		limit := 10
+		if raw := strings.TrimSpace(r.URL.Query().Get("limit")); raw != "" {
+			if n, err := strconv.Atoi(raw); err == nil && n > 0 {
+				limit = n
+			}
+		}
+		body, err := json.MarshalIndent(channelreport.BuildLeaderboard(s.Channels, limit), "", "  ")
+		if err != nil {
+			http.Error(w, `{"error":"encode channel leaderboard"}`, http.StatusInternalServerError)
 			return
 		}
 		_, _ = w.Write(body)

@@ -2,6 +2,7 @@ package epgdoctor
 
 import (
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/snapetech/iptvtunerr/internal/epglink"
@@ -23,6 +24,7 @@ type Summary struct {
 	ChannelsWithRealProgrammes int      `json:"channels_with_real_programmes"`
 	PlaceholderOnlyChannels    int      `json:"placeholder_only_channels"`
 	NoProgrammeChannels        int      `json:"no_programme_channels"`
+	SuggestedAliasOverrides    int      `json:"suggested_alias_overrides"`
 	TopFindings                []string `json:"top_findings"`
 }
 
@@ -57,6 +59,10 @@ func Build(gh guidehealth.Report, links *epglink.Report, now time.Time) Report {
 	if gh.Summary.ChannelsWithRealProgrammes == gh.Summary.TotalChannels && gh.Summary.TotalChannels > 0 {
 		findings = append(findings, "All channels in this report have real guide programme coverage")
 	}
+	out.Summary.SuggestedAliasOverrides = len(SuggestedAliasOverrides(gh, links).NameToXMLTVID)
+	if out.Summary.SuggestedAliasOverrides > 0 {
+		findings = append(findings, "High-confidence alias overrides can be exported from normalized-name matches")
+	}
 	out.Summary.TopFindings = findings
 	return out
 }
@@ -82,6 +88,40 @@ func SortedMethodCounts(rep *epglink.Report) []string {
 	out := make([]string, 0, len(rows))
 	for _, row := range rows {
 		out = append(out, row.Key)
+	}
+	return out
+}
+
+func SuggestedAliasOverrides(gh guidehealth.Report, links *epglink.Report) epglink.AliasOverrides {
+	out := epglink.AliasOverrides{NameToXMLTVID: map[string]string{}}
+	if links == nil || len(links.Rows) == 0 {
+		return out
+	}
+	healthByChannelID := make(map[string]guidehealth.ChannelHealth, len(gh.Channels))
+	for _, row := range gh.Channels {
+		healthByChannelID[row.ChannelID] = row
+	}
+	conflicts := map[string]bool{}
+	for _, row := range links.Rows {
+		if !row.Matched || row.Method != epglink.MatchNormalizedNameExact {
+			continue
+		}
+		if strings.TrimSpace(row.GuideName) == "" || strings.TrimSpace(row.MatchedXMLTV) == "" {
+			continue
+		}
+		health, ok := healthByChannelID[row.ChannelID]
+		if ok && !health.HasRealProgrammes {
+			continue
+		}
+		key := strings.TrimSpace(row.GuideName)
+		if existing, exists := out.NameToXMLTVID[key]; exists && existing != row.MatchedXMLTV {
+			conflicts[key] = true
+			delete(out.NameToXMLTVID, key)
+			continue
+		}
+		if !conflicts[key] {
+			out.NameToXMLTVID[key] = row.MatchedXMLTV
+		}
 	}
 	return out
 }

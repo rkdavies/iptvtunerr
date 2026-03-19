@@ -23,6 +23,13 @@ func reportCommands() []commandSpec {
 	channelReportAliases := channelReportCmd.String("aliases", "", "Optional alias override JSON (name_to_xmltv_id map)")
 	channelReportOut := channelReportCmd.String("out", "", "Optional JSON report output path (default: stdout)")
 
+	channelLeaderboardCmd := flag.NewFlagSet("channel-leaderboard", flag.ExitOnError)
+	channelLeaderboardCatalog := channelLeaderboardCmd.String("catalog", "", "Input catalog.json (default: IPTV_TUNERR_CATALOG)")
+	channelLeaderboardXMLTV := channelLeaderboardCmd.String("xmltv", "", "Optional XMLTV file path or http(s) URL to enrich leaderboard with exact/alias/name match details")
+	channelLeaderboardAliases := channelLeaderboardCmd.String("aliases", "", "Optional alias override JSON (name_to_xmltv_id map)")
+	channelLeaderboardLimit := channelLeaderboardCmd.Int("limit", 10, "Max rows per leaderboard bucket")
+	channelLeaderboardOut := channelLeaderboardCmd.String("out", "", "Optional JSON report output path (default: stdout)")
+
 	channelDNAReportCmd := flag.NewFlagSet("channel-dna-report", flag.ExitOnError)
 	channelDNAReportCatalog := channelDNAReportCmd.String("catalog", "", "Input catalog.json (default: IPTV_TUNERR_CATALOG)")
 	channelDNAReportOut := channelDNAReportCmd.String("out", "", "Optional JSON report output path (default: stdout)")
@@ -49,6 +56,10 @@ func reportCommands() []commandSpec {
 		{Name: "channel-report", Section: "Guide/EPG", Summary: "Channel intelligence report: score stream resilience + guide confidence", FlagSet: channelReportCmd, Run: func(cfg *config.Config, args []string) {
 			_ = channelReportCmd.Parse(args)
 			handleChannelReport(cfg, *channelReportCatalog, *channelReportXMLTV, *channelReportAliases, *channelReportOut)
+		}},
+		{Name: "channel-leaderboard", Section: "Guide/EPG", Summary: "Hall of fame/shame plus guide-risk and stream-risk channel leaderboards", FlagSet: channelLeaderboardCmd, Run: func(cfg *config.Config, args []string) {
+			_ = channelLeaderboardCmd.Parse(args)
+			handleChannelLeaderboard(cfg, *channelLeaderboardCatalog, *channelLeaderboardXMLTV, *channelLeaderboardAliases, *channelLeaderboardLimit, *channelLeaderboardOut)
 		}},
 		{Name: "channel-dna-report", Section: "Guide/EPG", Summary: "Group live channels by stable dna_id identity", FlagSet: channelDNAReportCmd, Run: func(cfg *config.Config, args []string) {
 			_ = channelDNAReportCmd.Parse(args)
@@ -79,6 +90,26 @@ func handleChannelReport(cfg *config.Config, catalogPath, xmltvRef, aliasesRef, 
 			os.Exit(1)
 		}
 		log.Printf("Wrote channel report: %s", p)
+	} else {
+		fmt.Println(string(data))
+	}
+}
+
+func handleChannelLeaderboard(cfg *config.Config, catalogPath, xmltvRef, aliasesRef string, limit int, outPath string) {
+	live := loadLiveReportCatalog(cfg, catalogPath)
+	rep := channelreport.Build(live)
+	if matchRep := loadOptionalMatchReport(live, xmltvRef, aliasesRef); matchRep != nil {
+		channelreport.AttachEPGMatchReport(&rep, *matchRep)
+		log.Print(matchRep.SummaryString())
+	}
+	leaderboard := channelreport.BuildLeaderboardFromReport(rep, limit)
+	data, _ := json.MarshalIndent(leaderboard, "", "  ")
+	if p := strings.TrimSpace(outPath); p != "" {
+		if err := os.WriteFile(p, data, 0o600); err != nil {
+			log.Printf("Write channel leaderboard %s: %v", p, err)
+			os.Exit(1)
+		}
+		log.Printf("Wrote channel leaderboard: %s", p)
 	} else {
 		fmt.Println(string(data))
 	}

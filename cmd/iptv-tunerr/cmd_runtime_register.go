@@ -4,11 +4,13 @@ import (
 	"context"
 	"log"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/snapetech/iptvtunerr/internal/catalog"
+	"github.com/snapetech/iptvtunerr/internal/channelreport"
 	"github.com/snapetech/iptvtunerr/internal/config"
 	"github.com/snapetech/iptvtunerr/internal/emby"
 	"github.com/snapetech/iptvtunerr/internal/plex"
@@ -121,7 +123,7 @@ func registerRunPlex(ctx context.Context, cfg *config.Config, live []catalog.Liv
 	return false
 }
 
-func registerRunMediaServers(ctx context.Context, cfg *config.Config, baseURL string, registerEmby, registerJellyfin bool, embyStateFile, jellyfinStateFile string, embyInterval, jellyfinInterval time.Duration) {
+func registerRunMediaServers(ctx context.Context, cfg *config.Config, live []catalog.LiveChannel, baseURL string, registerEmby, registerJellyfin bool, embyStateFile, jellyfinStateFile string, embyInterval, jellyfinInterval time.Duration) {
 	registerMediaServer := func(serverType, host, token, stateFile string, interval time.Duration) {
 		if host == "" || token == "" {
 			envPrefix := strings.ToUpper(serverType)
@@ -137,7 +139,7 @@ func registerRunMediaServers(ctx context.Context, cfg *config.Config, baseURL st
 			Token:        token,
 			TunerURL:     baseURL,
 			FriendlyName: cfg.FriendlyName,
-			TunerCount:   cfg.TunerCount,
+			TunerCount:   minInt(cfg.TunerCount, maxInt(1, len(live))),
 			ServerType:   serverType,
 		}
 		if err := emby.FullRegister(embyCfg, stateFile); err != nil {
@@ -154,4 +156,79 @@ func registerRunMediaServers(ctx context.Context, cfg *config.Config, baseURL st
 	if registerJellyfin {
 		registerMediaServer("jellyfin", cfg.JellyfinHost, cfg.JellyfinToken, jellyfinStateFile, jellyfinInterval)
 	}
+}
+
+func applyRegistrationRecipe(live []catalog.LiveChannel, recipe string) []catalog.LiveChannel {
+	recipe = strings.ToLower(strings.TrimSpace(recipe))
+	switch recipe {
+	case "", "off", "none":
+		return live
+	}
+	rep := channelreport.Build(live)
+	byID := make(map[string]channelreport.ChannelHealth, len(rep.Channels))
+	for _, row := range rep.Channels {
+		byID[row.ChannelID] = row
+	}
+	out := append([]catalog.LiveChannel(nil), live...)
+	sort.SliceStable(out, func(i, j int) bool {
+		left := byID[out[i].ChannelID]
+		right := byID[out[j].ChannelID]
+		switch recipe {
+		case "balanced":
+			if left.Score == right.Score {
+				return left.GuideNumber < right.GuideNumber
+			}
+			return left.Score > right.Score
+		case "high_confidence", "healthy":
+			if left.GuideConfidence == right.GuideConfidence {
+				if left.Score == right.Score {
+					return left.GuideNumber < right.GuideNumber
+				}
+				return left.Score > right.Score
+			}
+			return left.GuideConfidence > right.GuideConfidence
+		case "guide_first":
+			if left.GuideConfidence == right.GuideConfidence {
+				return left.StreamResilience > right.StreamResilience
+			}
+			return left.GuideConfidence > right.GuideConfidence
+		case "resilient":
+			if left.StreamResilience == right.StreamResilience {
+				return left.GuideConfidence > right.GuideConfidence
+			}
+			return left.StreamResilience > right.StreamResilience
+		default:
+			return left.GuideNumber < right.GuideNumber
+		}
+	})
+	switch recipe {
+	case "healthy":
+		filtered := out[:0]
+		for _, ch := range out {
+			row := byID[ch.ChannelID]
+			if row.Tier == channelreport.TierPoor || row.GuideConfidence < 25 {
+				continue
+			}
+			filtered = append(filtered, ch)
+		}
+		out = filtered
+	}
+	if recipe != "off" && recipe != "none" && recipe != "" {
+		log.Printf("Registration recipe applied: recipe=%s kept=%d/%d", recipe, len(out), len(live))
+	}
+	return out
+}
+
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }

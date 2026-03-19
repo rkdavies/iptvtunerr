@@ -25,6 +25,15 @@ type Report struct {
 	Channels    []ChannelHealth `json:"channels"`
 }
 
+type Leaderboard struct {
+	GeneratedAt string          `json:"generated_at"`
+	Limit       int             `json:"limit"`
+	HallOfFame  []ChannelHealth `json:"hall_of_fame"`
+	HallOfShame []ChannelHealth `json:"hall_of_shame"`
+	GuideRisks  []ChannelHealth `json:"guide_risks"`
+	StreamRisks []ChannelHealth `json:"stream_risks"`
+}
+
 type Summary struct {
 	TotalChannels     int            `json:"total_channels"`
 	EPGLinkedChannels int            `json:"epg_linked_channels"`
@@ -115,6 +124,64 @@ func Build(live []catalog.LiveChannel) Report {
 	for i := 0; i < len(top) && i < 5; i++ {
 		out.Summary.TopOpportunities = append(out.Summary.TopOpportunities, top[i].Key)
 	}
+	return out
+}
+
+func BuildLeaderboard(live []catalog.LiveChannel, limit int) Leaderboard {
+	return BuildLeaderboardFromReport(Build(live), limit)
+}
+
+func BuildLeaderboardFromReport(rep Report, limit int) Leaderboard {
+	if limit <= 0 {
+		limit = 10
+	}
+	out := Leaderboard{
+		GeneratedAt: rep.GeneratedAt,
+		Limit:       limit,
+	}
+	channels := append([]ChannelHealth(nil), rep.Channels...)
+
+	hallOfFame := append([]ChannelHealth(nil), channels...)
+	sort.SliceStable(hallOfFame, func(i, j int) bool {
+		if hallOfFame[i].Score == hallOfFame[j].Score {
+			if hallOfFame[i].GuideConfidence == hallOfFame[j].GuideConfidence {
+				return strings.ToLower(hallOfFame[i].GuideName) < strings.ToLower(hallOfFame[j].GuideName)
+			}
+			return hallOfFame[i].GuideConfidence > hallOfFame[j].GuideConfidence
+		}
+		return hallOfFame[i].Score > hallOfFame[j].Score
+	})
+	out.HallOfFame = trimLeaderboardRows(hallOfFame, limit)
+
+	hallOfShame := append([]ChannelHealth(nil), channels...)
+	sort.SliceStable(hallOfShame, func(i, j int) bool {
+		if hallOfShame[i].Score == hallOfShame[j].Score {
+			if len(hallOfShame[i].Risks) == len(hallOfShame[j].Risks) {
+				return strings.ToLower(hallOfShame[i].GuideName) < strings.ToLower(hallOfShame[j].GuideName)
+			}
+			return len(hallOfShame[i].Risks) > len(hallOfShame[j].Risks)
+		}
+		return hallOfShame[i].Score < hallOfShame[j].Score
+	})
+	out.HallOfShame = trimLeaderboardRows(hallOfShame, limit)
+
+	guideRisks := append([]ChannelHealth(nil), channels...)
+	sort.SliceStable(guideRisks, func(i, j int) bool {
+		if guideRisks[i].GuideConfidence == guideRisks[j].GuideConfidence {
+			return strings.ToLower(guideRisks[i].GuideName) < strings.ToLower(guideRisks[j].GuideName)
+		}
+		return guideRisks[i].GuideConfidence < guideRisks[j].GuideConfidence
+	})
+	out.GuideRisks = trimLeaderboardRows(guideRisks, limit)
+
+	streamRisks := append([]ChannelHealth(nil), channels...)
+	sort.SliceStable(streamRisks, func(i, j int) bool {
+		if streamRisks[i].StreamResilience == streamRisks[j].StreamResilience {
+			return strings.ToLower(streamRisks[i].GuideName) < strings.ToLower(streamRisks[j].GuideName)
+		}
+		return streamRisks[i].StreamResilience < streamRisks[j].StreamResilience
+	})
+	out.StreamRisks = trimLeaderboardRows(streamRisks, limit)
 	return out
 }
 
@@ -293,4 +360,11 @@ func max(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func trimLeaderboardRows(in []ChannelHealth, limit int) []ChannelHealth {
+	if limit <= 0 || len(in) <= limit {
+		return in
+	}
+	return in[:limit]
 }

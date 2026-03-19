@@ -205,6 +205,18 @@ match). Optional alias overrides come from `IPTV_TUNERR_XMLTV_ALIASES`.
 - actual merged-guide coverage
 - a single summary of what is broken and what to fix first
 
+When those normalized-name repairs look trustworthy, `epg-doctor` can now emit a ready-to-review alias override file so you can persist the fixes instead of rediscovering them every run:
+
+```bash
+iptv-tunerr epg-doctor \
+  -catalog ./catalog.json \
+  -guide http://127.0.0.1:5004/guide.xml \
+  -xmltv http://example/xmltv.xml \
+  -write-aliases ./aliases.review.json
+
+curl -s http://127.0.0.1:5004/guide/aliases.json | jq
+```
+
 These two capabilities run from the same process. They can be used independently: point your media server at the tuner URL for streams and at a different guide source, or use IPTV Tunerr for both.
 
 ---
@@ -225,6 +237,7 @@ The per-channel health report scores:
 - stream resilience
 - backup-stream depth
 - next actions to improve weak channels
+- and now a leaderboard view so the best and worst channels are obvious without reading the whole report
 
 Two entry points:
 
@@ -234,11 +247,15 @@ iptv-tunerr channel-report -catalog ./catalog.json
 
 # include XMLTV match provenance too
 iptv-tunerr channel-report -catalog ./catalog.json -xmltv http://example/xmltv.xml -aliases ./aliases.json
+
+# leaderboard / hall-of-fame view
+iptv-tunerr channel-leaderboard -catalog ./catalog.json -limit 10
 ```
 
 ```bash
 # live server endpoint
 curl -s http://127.0.0.1:5004/channels/report.json | jq
+curl -s http://127.0.0.1:5004/channels/leaderboard.json?limit=10 | jq
 
 # guide-health / EPG doctor style report
 iptv-tunerr guide-health -catalog ./catalog.json -guide http://127.0.0.1:5004/guide.xml -xmltv http://example/xmltv.xml -aliases ./aliases.json
@@ -426,6 +443,7 @@ IPTV_TUNERR_LINEUP_RECIPE=balanced         # rank by combined score
 IPTV_TUNERR_LINEUP_RECIPE=guide_first      # rank by guide confidence first
 IPTV_TUNERR_LINEUP_RECIPE=resilient        # rank by backup-stream resilience first
 IPTV_TUNERR_GUIDE_POLICY=healthy           # keep only channels with real programme blocks once guide cache is ready
+IPTV_TUNERR_REGISTER_RECIPE=healthy        # use channel-intelligence scoring to prune/reorder channels before Plex/Emby/Jellyfin registration
 ```
 
 For catch-up preview/publish flows:
@@ -517,6 +535,7 @@ Config reference: [`docs/reference/testing-and-supervisor-config.md`](docs/refer
 | `probe` | Test and rank provider hosts |
 | `supervise` | Run multiple child tuner instances from a JSON config |
 | `channel-report` | Score channels by guide confidence, stream resilience, and EPG match quality |
+| `channel-leaderboard` | Hall of fame/shame plus guide-risk and stream-risk channel leaderboards |
 | `guide-health` | Diagnose real guide coverage, placeholder-only channels, and XMLTV match quality |
 | `epg-doctor` | Run the combined EPG diagnosis workflow in one report |
 | `channel-dna-report` | Group channels by stable cross-provider `dna_id` identity |

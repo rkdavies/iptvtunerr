@@ -203,3 +203,19 @@ func (s *Server) serveEPGDoctor() http.Handler {
 		_ = json.NewEncoder(w).Encode(rep)
 	})
 }
+
+func (s *Server) serveSuggestedAliasOverrides() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		aliasesRef := strings.TrimSpace(r.URL.Query().Get("aliases"))
+		if aliasesRef == "" {
+			aliasesRef = strings.TrimSpace(os.Getenv("IPTV_TUNERR_XMLTV_ALIASES"))
+		}
+		rep, err := s.xmltv.EPGDoctor(time.Now(), aliasesRef)
+		if err != nil {
+			http.Error(w, "alias suggestions unavailable: "+err.Error(), http.StatusBadGateway)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(epgdoctor.SuggestedAliasOverrides(rep.GuideHealth, rep.LinkReport))
+	})
+}

@@ -77,7 +77,7 @@ func handleServe(cfg *config.Config, catalogPath, addr, baseURL, deviceID, frien
 	}
 }
 
-func handleRun(cfg *config.Config, catalogPath, addr, baseURL, deviceID, friendlyName string, refresh time.Duration, skipIndex, skipHealth bool, registerPlex string, registerOnly bool, registerInterval time.Duration, mode string, registerEmby, registerJellyfin bool, embyInterval, jellyfinInterval time.Duration, embyStateFile, jellyfinStateFile string) {
+func handleRun(cfg *config.Config, catalogPath, addr, baseURL, deviceID, friendlyName string, refresh time.Duration, skipIndex, skipHealth bool, registerPlex string, registerOnly bool, registerInterval time.Duration, registerRecipe, mode string, registerEmby, registerJellyfin bool, embyInterval, jellyfinInterval time.Duration, embyStateFile, jellyfinStateFile string) {
 	runCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -173,6 +173,7 @@ func handleRun(cfg *config.Config, catalogPath, addr, baseURL, deviceID, friendl
 	if cfg.XMLTVURL != "" {
 		log.Printf("External XMLTV enabled: %s (timeout %v)", cfg.XMLTVURL, cfg.XMLTVTimeout)
 	}
+	registrationLive := applyRegistrationRecipe(live, registerRecipe)
 
 	credentials := cfg.ProviderUser != "" && cfg.ProviderPass != ""
 	if credentials {
@@ -216,10 +217,10 @@ func handleRun(cfg *config.Config, catalogPath, addr, baseURL, deviceID, friendl
 		}()
 	}
 
-	if registerRunPlex(runCtx, cfg, live, baseURL, registerPlex, registerOnly, registerInterval, mode) {
+	if registerRunPlex(runCtx, cfg, registrationLive, baseURL, registerPlex, registerOnly, registerInterval, mode) {
 		return
 	}
-	registerRunMediaServers(runCtx, cfg, baseURL, registerEmby, registerJellyfin, embyStateFile, jellyfinStateFile, embyInterval, jellyfinInterval)
+	registerRunMediaServers(runCtx, cfg, registrationLive, baseURL, registerEmby, registerJellyfin, embyStateFile, jellyfinStateFile, embyInterval, jellyfinInterval)
 
 	if err := srv.Run(runCtx); err != nil {
 		log.Printf("Tuner failed: %v", err)

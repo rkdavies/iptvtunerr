@@ -218,6 +218,15 @@
   7. cached live match-provenance reuse so repeated guide diagnostics do not rebuild the same source-XMLTV match analysis on every request
 
 **Current focus shift (README feature-story rewrite, 2026-03-18):**
+- README was rewritten so the front page explains why the features matter operationally, not just that they exist.
+
+**Current focus shift (remaining product-facing intelligence surfaces, 2026-03-18):**
+- User called out that the remaining work from the earlier audit/product list still needed to land, not just structural cleanup.
+- This pass covers:
+  1. `epg-doctor` alias-export auto-fixer output (`-write-aliases` plus a live endpoint)
+  2. channel leaderboard / hall-of-fame / hall-of-shame surfaces
+  3. a registration recipe so Plex/Emby/Jellyfin registration can reuse channel-intelligence scoring
+  4. docs/changelog/env/memory-bank updates plus full verify
 - User called out that the README was listing features without explaining why an operator should care.
 - This docs pass rewrites the front-page README around:
   1. real IPTV pain points

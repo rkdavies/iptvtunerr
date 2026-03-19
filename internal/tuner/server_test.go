@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/snapetech/iptvtunerr/internal/catalog"
+	"github.com/snapetech/iptvtunerr/internal/epglink"
 	"github.com/snapetech/iptvtunerr/internal/guidehealth"
 )
 
@@ -80,6 +81,41 @@ func TestServer_channelReport(t *testing.T) {
 	}
 	if len(body.Channels) != 1 {
 		t.Fatalf("channels len=%d want 1", len(body.Channels))
+	}
+}
+
+func TestServer_channelLeaderboard(t *testing.T) {
+	s := &Server{LineupMaxChannels: NoLineupCap}
+	s.UpdateChannels([]catalog.LiveChannel{
+		{ChannelID: "1", GuideNumber: "101", GuideName: "Best News", TVGID: "best.news", EPGLinked: true, StreamURL: "http://a/1", StreamURLs: []string{"http://a/1", "http://b/1"}},
+		{ChannelID: "2", GuideNumber: "102", GuideName: "Weak Guide", StreamURL: "http://a/2"},
+	})
+	req := httptest.NewRequest(http.MethodGet, "/channels/leaderboard.json?limit=1", nil)
+	w := httptest.NewRecorder()
+	s.serveChannelLeaderboard().ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status=%d want 200", w.Code)
+	}
+	var body struct {
+		Limit      int `json:"limit"`
+		HallOfFame []struct {
+			GuideName string `json:"guide_name"`
+		} `json:"hall_of_fame"`
+		HallOfShame []struct {
+			GuideName string `json:"guide_name"`
+		} `json:"hall_of_shame"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if body.Limit != 1 {
+		t.Fatalf("limit=%d want 1", body.Limit)
+	}
+	if len(body.HallOfFame) != 1 || body.HallOfFame[0].GuideName != "Best News" {
+		t.Fatalf("unexpected hall_of_fame=%+v", body.HallOfFame)
+	}
+	if len(body.HallOfShame) != 1 || body.HallOfShame[0].GuideName != "Weak Guide" {
+		t.Fatalf("unexpected hall_of_shame=%+v", body.HallOfShame)
 	}
 }
 
@@ -249,6 +285,47 @@ func TestServer_guideHealth(t *testing.T) {
 	}
 	if len(body.Channels) != 2 {
 		t.Fatalf("channels len=%d want 2", len(body.Channels))
+	}
+}
+
+func TestServer_suggestedAliasOverrides(t *testing.T) {
+	s := &Server{
+		xmltv: &XMLTV{
+			Channels: []catalog.LiveChannel{
+				{ChannelID: "1", GuideNumber: "101", GuideName: "FOX News Channel US", TVGID: "wrong.id", EPGLinked: true},
+			},
+			SourceURL: "unused",
+			cachedXML: []byte(`<?xml version="1.0" encoding="UTF-8"?>
+<tv>
+  <channel id="101"><display-name>FOX News Channel US</display-name></channel>
+  <programme start="20260318120000 +0000" stop="20260318130000 +0000" channel="101">
+    <title>Morning News</title>
+    <desc>Top stories</desc>
+  </programme>
+</tv>`),
+			cachedMatchReport: &epglink.Report{
+				Rows: []epglink.ChannelMatch{
+					{ChannelID: "1", GuideName: "FOX News Channel US", Matched: true, MatchedXMLTV: "foxnews.us", Method: epglink.MatchNormalizedNameExact},
+				},
+			},
+			cachedMatchExp: time.Time{},
+			cacheExp:       time.Time{},
+		},
+	}
+	req := httptest.NewRequest(http.MethodGet, "/guide/aliases.json", nil)
+	w := httptest.NewRecorder()
+	s.serveSuggestedAliasOverrides().ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status=%d want 200", w.Code)
+	}
+	var body struct {
+		NameToXMLTVID map[string]string `json:"name_to_xmltv_id"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if body.NameToXMLTVID["FOX News Channel US"] != "foxnews.us" {
+		t.Fatalf("unexpected aliases=%v", body.NameToXMLTVID)
 	}
 }
 
