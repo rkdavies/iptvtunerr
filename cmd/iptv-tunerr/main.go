@@ -376,7 +376,7 @@ func fetchCatalog(cfg *config.Config, m3uOverride string) (catalogResult, error)
 		res.Movies, res.Series, res.Live = movies, series, live
 		res.Live = dedupeByTVGID(res.Live, cfg.StripStreamHosts)
 		enrichM3UWithProviderBases(cfg, res.Live)
-	} else if m3uURLs := cfg.M3UURLsOrBuild(); len(m3uURLs) > 0 {
+	} else if m3uURLs := configuredDirectM3UURLs(cfg); len(m3uURLs) > 0 {
 		var (
 			lastErr      error
 			mergedMovies []catalog.Movie
@@ -512,6 +512,22 @@ func fetchCatalog(cfg *config.Config, m3uOverride string) (catalogResult, error)
 	}
 
 	return res, nil
+}
+
+func configuredDirectM3UURLs(cfg *config.Config) []string {
+	var direct []string
+	if cfg != nil && strings.TrimSpace(cfg.M3UURL) != "" {
+		direct = append(direct, strings.TrimSpace(cfg.M3UURL))
+	}
+	for n := 2; ; n++ {
+		suffix := fmt.Sprintf("_%d", n)
+		u := strings.TrimSpace(os.Getenv("IPTV_TUNERR_M3U_URL" + suffix))
+		if u == "" {
+			break
+		}
+		direct = append(direct, u)
+	}
+	return direct
 }
 
 // catalogStats returns EPG-linked and multi-URL counts for summary logging.

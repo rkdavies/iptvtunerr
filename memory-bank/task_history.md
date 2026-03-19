@@ -23,6 +23,23 @@ Append-only. One entry per completed task.
 ## Entries
 
 - Date: 2026-03-18
+  Title: Restore provider player_api fallback and fix XMLTV reader cancellation
+  Summary:
+    - Changed `fetchCatalog` so only explicit direct M3U configuration uses the M3U-only branch; provider-configured runs now continue through the `player_api`-first path with `get.php` fallback as before.
+    - Added a regression test for the `884`/built-`get.php` case.
+    - Fixed `internal/refio.Open` so timeout contexts are canceled when the caller closes the response body, not immediately when `Open` returns.
+    - Added a regression test to keep remote XMLTV readers usable after `Open`.
+  Verification:
+    - `go test ./cmd/iptv-tunerr ./internal/refio ./internal/tuner`
+    - `./scripts/verify`
+  Notes:
+    - This addresses a real runtime bug on `main`, not a side effect of the in-progress gateway refactors.
+  Opportunities filed:
+    - none
+  Links:
+    - cmd/iptv-tunerr/main.go, cmd/iptv-tunerr/main_test.go, internal/refio/refio.go, internal/refio/refio_test.go
+
+- Date: 2026-03-18
   Title: Split gateway debug helpers into a focused file
   Summary:
     - Moved stream-debug env parsing, header logging, capped tee-file helpers, and the wrapped debug response writer into `internal/tuner/gateway_debug.go`.

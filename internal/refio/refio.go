@@ -14,6 +14,19 @@ import (
 
 const userAgent = "IptvTunerr/1.0"
 
+type cancelReadCloser struct {
+	io.ReadCloser
+	cancel context.CancelFunc
+}
+
+func (r *cancelReadCloser) Close() error {
+	err := r.ReadCloser.Close()
+	if r.cancel != nil {
+		r.cancel()
+	}
+	return err
+}
+
 func Open(ref string, timeout time.Duration) (io.ReadCloser, error) {
 	ref = strings.TrimSpace(ref)
 	if ref == "" {
@@ -26,10 +39,12 @@ func Open(ref string, timeout time.Duration) (io.ReadCloser, error) {
 	var cancel context.CancelFunc
 	if timeout > 0 {
 		ctx, cancel = context.WithTimeout(ctx, timeout)
-		defer cancel()
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, ref, nil)
 	if err != nil {
+		if cancel != nil {
+			cancel()
+		}
 		return nil, err
 	}
 	req.Header.Set("User-Agent", userAgent)
@@ -39,11 +54,20 @@ func Open(ref string, timeout time.Duration) (io.ReadCloser, error) {
 	}
 	resp, err := client.Do(req)
 	if err != nil {
+		if cancel != nil {
+			cancel()
+		}
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
 		defer resp.Body.Close()
+		if cancel != nil {
+			cancel()
+		}
 		return nil, fmt.Errorf("http %d", resp.StatusCode)
+	}
+	if cancel != nil {
+		return &cancelReadCloser{ReadCloser: resp.Body, cancel: cancel}, nil
 	}
 	return resp.Body, nil
 }

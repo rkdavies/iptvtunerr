@@ -1,6 +1,7 @@
 package refio
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -40,5 +41,27 @@ func TestReadAllURL(t *testing.T) {
 	}
 	if got := string(data); got != "ok" {
 		t.Fatalf("data=%q want ok", got)
+	}
+}
+
+func TestOpenURLKeepsBodyReadableAfterOpenReturns(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = io.WriteString(w, `<?xml version="1.0"?><tv><channel id="fox"><display-name>FOX</display-name></channel></tv>`)
+	}))
+	defer srv.Close()
+
+	r, err := Open(srv.URL, 2*time.Second)
+	if err != nil {
+		t.Fatalf("Open URL: %v", err)
+	}
+	defer r.Close()
+
+	data, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("ReadAll after Open: %v", err)
+	}
+	if len(data) == 0 {
+		t.Fatal("expected body bytes")
 	}
 }

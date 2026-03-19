@@ -64,6 +64,15 @@
   3. leave live request routing and stream decisions in `gateway.go`
   4. verify and push if green
 
+**Current focus shift (catalog fallback + EPG repair hotfix, 2026-03-18):**
+- Tester reported that current `iptv-tunerr` still fails on provider `884`/M3U errors because `fetchCatalog` can terminate on the M3U path before trying the older `player_api` route.
+- The same validation run also exposed a separate EPG repair failure: provider XMLTV channel parsing logging `context canceled`.
+- This pass covers:
+  1. restore old behavior so only explicit `IPTV_TUNERR_M3U_URL[_N]` uses direct M3U mode
+  2. keep provider-configured runs on the `player_api` first, `get.php` fallback path
+  3. fix `refio.Open` so timed URL readers are not canceled immediately on return
+  4. add regression tests and verify before pushing
+
 **Current focus shift (EPG doctor operator docs, 2026-03-18):**
 - Follow-on docs cleanup after shipping `guide-health` and `epg-doctor`: make the new guide-diagnostics workflow discoverable from the how-to and runbook indexes so operators have one documented path from symptom to fix.
 - This pass adds:
