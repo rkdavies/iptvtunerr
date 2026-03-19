@@ -23,6 +23,21 @@ Append-only. One entry per completed task.
 ## Entries
 
 - Date: 2026-03-18
+  Title: Split gateway upstream request helpers into a focused file
+  Summary:
+    - Moved upstream request/header application, ffmpeg header block generation, response preview reading, and concurrency-preview parsing into `internal/tuner/gateway_upstream.go`.
+    - Reduced `gateway.go` further so upstream helper code no longer sits inline with the relay flow.
+  Verification:
+    - `go test ./internal/tuner`
+    - `./scripts/verify`
+  Notes:
+    - Structural only; no intended runtime behavior change.
+  Opportunities filed:
+    - none
+  Links:
+    - internal/tuner/gateway.go, internal/tuner/gateway_upstream.go
+
+- Date: 2026-03-18
   Title: Restore provider player_api fallback and fix XMLTV reader cancellation
   Summary:
     - Changed `fetchCatalog` so only explicit direct M3U configuration uses the M3U-only branch; provider-configured runs now continue through the `player_api`-first path with `get.php` fallback as before.

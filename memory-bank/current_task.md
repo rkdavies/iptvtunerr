@@ -73,6 +73,14 @@
   3. fix `refio.Open` so timed URL readers are not canceled immediately on return
   4. add regression tests and verify before pushing
 
+**Current focus shift (gateway upstream helper split, 2026-03-18):**
+- Back on the gateway decomposition after landing the ingest/EPG hotfix.
+- This pass covers:
+  1. move upstream request/header helpers into a dedicated file
+  2. move upstream concurrency-preview parsing there as well
+  3. keep `gateway.go` focused on request lifecycle and relay logic
+  4. verify and push if green
+
 **Current focus shift (EPG doctor operator docs, 2026-03-18):**
 - Follow-on docs cleanup after shipping `guide-health` and `epg-doctor`: make the new guide-diagnostics workflow discoverable from the how-to and runbook indexes so operators have one documented path from symptom to fix.
 - This pass adds:
