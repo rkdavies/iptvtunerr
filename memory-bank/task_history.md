@@ -23,6 +23,21 @@ Append-only. One entry per completed task.
 ## Entries
 
 - Date: 2026-03-18
+  Title: Split guide-diagnostics commands out of cmd_reports.go
+  Summary:
+    - Moved `epg-link-report`, `guide-health`, and `epg-doctor` into `cmd/iptv-tunerr/cmd_guide_reports.go`.
+    - Added shared catalog/XMLTV loading helpers for the guide-diagnostics path and kept `cmd_reports.go` focused on channel, Ghost Hunter, and capsule reporting.
+  Verification:
+    - `go test ./cmd/iptv-tunerr`
+    - `./scripts/verify`
+  Notes:
+    - This is structural cleanup plus a small duplication reduction; command behavior and flags were preserved.
+  Opportunities filed:
+    - none
+  Links:
+    - cmd/iptv-tunerr/cmd_reports.go, cmd/iptv-tunerr/cmd_guide_reports.go, cmd/iptv-tunerr/main.go
+
+- Date: 2026-03-18
   Title: Split CLI runtime handlers out of cmd_core.go
   Summary:
     - Moved `handleServe` and `handleRun` into `cmd/iptv-tunerr/cmd_runtime.go`.

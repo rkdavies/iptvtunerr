@@ -36,6 +36,7 @@ func main() {
 	}
 
 	commands := append(coreCommands(), reportCommands()...)
+	commands = append(commands, guideReportCommands()...)
 	commands = append(commands, opsCommands()...)
 	commandByName := make(map[string]commandSpec, len(commands))
 	sections := []string{"Core", "Guide/EPG", "VOD (Linux)", "Lab/ops"}

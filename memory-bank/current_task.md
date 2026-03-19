@@ -104,6 +104,14 @@
   3. preserve all command behavior while shrinking the remaining hotspot
   4. verify and push if green
 
+**Current focus shift (guide-report command split, 2026-03-18):**
+- Continuing the CLI decomposition with the `Guide/EPG` command family.
+- This pass covers:
+  1. move `epg-link-report`, `guide-health`, and `epg-doctor` into a dedicated guide-report file
+  2. keep `cmd_reports.go` focused on channel, Ghost Hunter, and capsule reporting
+  3. consolidate duplicated catalog/XMLTV loading helpers for the guide-diagnostics path
+  4. verify and push if green
+
 **Current focus shift (EPG doctor operator docs, 2026-03-18):**
 - Follow-on docs cleanup after shipping `guide-health` and `epg-doctor`: make the new guide-diagnostics workflow discoverable from the how-to and runbook indexes so operators have one documented path from symptom to fix.
 - This pass adds:
