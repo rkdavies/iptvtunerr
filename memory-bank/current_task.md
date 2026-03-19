@@ -176,6 +176,14 @@
   3. preserve command behavior while giving VOD its own command file
   4. verify and push if green
 
+**Current focus shift (report support consolidation, 2026-03-18):**
+- Finishing the smaller report-path cleanup after the command-family splits.
+- This pass covers:
+  1. move shared report catalog/XMLTV loader helpers into a dedicated support file
+  2. keep `cmd_reports.go` and `cmd_guide_reports.go` focused on report behavior, not shared input plumbing
+  3. preserve report behavior while removing duplicated loading logic
+  4. verify and push if green
+
 **Current focus shift (EPG doctor operator docs, 2026-03-18):**
 - Follow-on docs cleanup after shipping `guide-health` and `epg-doctor`: make the new guide-diagnostics workflow discoverable from the how-to and runbook indexes so operators have one documented path from symptom to fix.
 - This pass adds:

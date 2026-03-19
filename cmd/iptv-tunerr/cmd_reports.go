@@ -10,12 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/snapetech/iptvtunerr/internal/catalog"
 	"github.com/snapetech/iptvtunerr/internal/channeldna"
 	"github.com/snapetech/iptvtunerr/internal/channelreport"
 	"github.com/snapetech/iptvtunerr/internal/config"
-	"github.com/snapetech/iptvtunerr/internal/epglink"
-	"github.com/snapetech/iptvtunerr/internal/refio"
 	"github.com/snapetech/iptvtunerr/internal/tuner"
 )
 
@@ -69,45 +66,10 @@ func reportCommands() []commandSpec {
 }
 
 func handleChannelReport(cfg *config.Config, catalogPath, xmltvRef, aliasesRef, outPath string) {
-	path := strings.TrimSpace(catalogPath)
-	if path == "" {
-		path = cfg.CatalogPath
-	}
-	c := catalog.New()
-	if err := c.Load(path); err != nil {
-		log.Printf("Load catalog %s: %v", path, err)
-		os.Exit(1)
-	}
-	live := c.SnapshotLive()
+	live := loadLiveReportCatalog(cfg, catalogPath)
 	rep := channelreport.Build(live)
-	if strings.TrimSpace(xmltvRef) != "" {
-		xmltvR, err := refio.Open(strings.TrimSpace(xmltvRef), 45*time.Second)
-		if err != nil {
-			log.Printf("Open XMLTV %s: %v", xmltvRef, err)
-			os.Exit(1)
-		}
-		xmltvChans, err := epglink.ParseXMLTVChannels(xmltvR)
-		_ = xmltvR.Close()
-		if err != nil {
-			log.Printf("Parse XMLTV channels: %v", err)
-			os.Exit(1)
-		}
-		aliases := epglink.AliasOverrides{NameToXMLTVID: map[string]string{}}
-		if p := strings.TrimSpace(aliasesRef); p != "" {
-			aliasR, err := refio.Open(p, 45*time.Second)
-			if err != nil {
-				log.Printf("Open aliases %s: %v", p, err)
-				os.Exit(1)
-			}
-			aliases, err = epglink.LoadAliasOverrides(aliasR)
-			_ = aliasR.Close()
-			if err != nil {
-				log.Printf("Parse aliases: %v", err)
-				os.Exit(1)
-			}
-		}
-		matchRep := epglink.MatchLiveChannels(live, xmltvChans, aliases)
-		channelreport.AttachEPGMatchReport(&rep, matchRep)
+	if matchRep := loadOptionalMatchReport(live, xmltvRef, aliasesRef); matchRep != nil {
+		channelreport.AttachEPGMatchReport(&rep, *matchRep)
 		log.Print(matchRep.SummaryString())
 	}
 	data, _ := json.MarshalIndent(rep, "", "  ")
@@ -123,16 +85,7 @@ func handleChannelReport(cfg *config.Config, catalogPath, xmltvRef, aliasesRef, 
 }
 
 func handleChannelDNAReport(cfg *config.Config, catalogPath, outPath string) {
-	path := strings.TrimSpace(catalogPath)
-	if path == "" {
-		path = cfg.CatalogPath
-	}
-	c := catalog.New()
-	if err := c.Load(path); err != nil {
-		log.Printf("Load catalog %s: %v", path, err)
-		os.Exit(1)
-	}
-	rep := channeldna.BuildReport(c.SnapshotLive())
+	rep := channeldna.BuildReport(loadLiveReportCatalog(cfg, catalogPath))
 	data, _ := json.MarshalIndent(rep, "", "  ")
 	if p := strings.TrimSpace(outPath); p != "" {
 		if err := os.WriteFile(p, data, 0o600); err != nil {

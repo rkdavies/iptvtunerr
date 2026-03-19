@@ -23,6 +23,21 @@ Append-only. One entry per completed task.
 ## Entries
 
 - Date: 2026-03-18
+  Title: Split shared report input helpers into a support file
+  Summary:
+    - Added `cmd/iptv-tunerr/cmd_report_support.go` for shared live-catalog loading and optional XMLTV match-report loading.
+    - Removed duplicate report-input plumbing from `cmd_reports.go` and `cmd_guide_reports.go`.
+  Verification:
+    - `go test ./cmd/iptv-tunerr`
+    - `./scripts/verify`
+  Notes:
+    - This is structural only; report behavior was preserved while consolidating the shared input path.
+  Opportunities filed:
+    - none
+  Links:
+    - cmd/iptv-tunerr/cmd_reports.go, cmd/iptv-tunerr/cmd_guide_reports.go, cmd/iptv-tunerr/cmd_report_support.go
+
+- Date: 2026-03-18
   Title: Split VOD commands out of cmd_core.go
   Summary:
     - Moved `mount`, `plex-vod-register`, and `vod-split` into `cmd/iptv-tunerr/cmd_vod.go`.
