@@ -227,6 +227,14 @@
   2. channel leaderboard / hall-of-fame / hall-of-shame surfaces
   3. a registration recipe so Plex/Emby/Jellyfin registration can reuse channel-intelligence scoring
   4. docs/changelog/env/memory-bank updates plus full verify
+
+**Current focus shift (source-backed catch-up replay mode, 2026-03-18):**
+- User explicitly asked to finish the documented backlog instead of stopping after the audit cleanup slices.
+- This pass covers the next backlog item from `INT-007`:
+  1. add explicit replay-mode support for catch-up capsules and publishing
+  2. require a real operator-provided replay source template instead of faking replay with the live stream URL
+  3. expose replay-vs-launcher mode in capsule previews and publish manifests
+  4. update docs/changelog/env/memory-bank and verify before push
 - User called out that the README was listing features without explaining why an operator should care.
 - This docs pass rewrites the front-page README around:
   1. real IPTV pain points

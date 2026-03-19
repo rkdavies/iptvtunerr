@@ -385,6 +385,7 @@ Example:
 
 ```bash
 curl -s "http://127.0.0.1:5004/guide/capsules.json?horizon=4h&limit=12" | jq
+curl -s "http://127.0.0.1:5004/guide/capsules.json?horizon=4h&limit=12&replay_template=http://provider.example/timeshift/{channel_id}/{duration_mins}/{start_xtream}" | jq
 iptv-tunerr catchup-capsules -catalog ./catalog.json -xmltv http://127.0.0.1:5004/guide.xml -out ./capsules.json
 iptv-tunerr catchup-capsules -catalog ./catalog.json -xmltv http://127.0.0.1:5004/guide.xml -layout-dir ./capsule-layout
 ```
@@ -411,6 +412,7 @@ Why this matters:
 - users get a browsable near-live library, not only a DVR grid
 - operators can publish sports, movies, and general lanes separately
 - the same feed can be reused across Plex, Emby, and Jellyfin
+- when a replay-capable source exists, the same workflow can now publish real replay `.strm` targets instead of only live launchers
 
 Live-validated on the cluster:
 - Emby catch-up publish created lane libraries and on-disk `.strm + .nfo` content on the server PVC
@@ -424,14 +426,23 @@ iptv-tunerr catchup-publish \
   -catalog ./catalog.json \
   -xmltv http://127.0.0.1:5004/guide.xml \
   -stream-base-url http://127.0.0.1:5004 \
+  -replay-url-template "http://provider.example/timeshift/{channel_id}/{duration_mins}/{start_xtream}" \
   -out-dir ./catchup-published \
   -register-plex
 ```
 
-The generated items are near-live launchers, not historical recordings:
-- each item carries show metadata from the guide block
-- each `.strm` points back to the matching live channel stream
+Replay behavior is now explicit:
+- without a replay template, generated items are near-live launchers and each `.strm` points back to the matching live channel stream
+- with `-replay-url-template` or `IPTV_TUNERR_CATCHUP_REPLAY_URL_TEMPLATE`, generated items become source-backed replay launchers and `.strm` points at the rendered replay URL for that programme window
 - rerun the publisher on a schedule to keep the libraries fresh as programme windows roll
+
+Useful replay template variables:
+- `{channel_id}`
+- `{guide_number}`
+- `{start_xtream}` / `{stop_xtream}` (`YYYY-MM-DD:HH-MM`)
+- `{duration_mins}`
+- `{start_unix}` / `{stop_unix}`
+- `{title_query}` / `{channel_name_query}`
 
 ### Lineup Recipes
 

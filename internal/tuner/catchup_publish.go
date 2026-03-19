@@ -18,6 +18,7 @@ type CatchupPublishedItem struct {
 	Title       string `json:"title"`
 	ChannelName string `json:"channel_name"`
 	State       string `json:"state"`
+	ReplayMode  string `json:"replay_mode"`
 	Start       string `json:"start"`
 	Stop        string `json:"stop"`
 	Directory   string `json:"directory"`
@@ -37,6 +38,7 @@ type CatchupPublishedLibrary struct {
 type CatchupPublishManifest struct {
 	GeneratedAt   string                    `json:"generated_at"`
 	SourceReady   bool                      `json:"source_ready"`
+	ReplayMode    string                    `json:"replay_mode"`
 	RootDir       string                    `json:"root_dir"`
 	StreamBaseURL string                    `json:"stream_base_url"`
 	Libraries     []CatchupPublishedLibrary `json:"libraries"`
@@ -62,6 +64,7 @@ func SaveCatchupCapsuleLibraryLayout(outDir, streamBaseURL, libraryPrefix string
 	manifest := CatchupPublishManifest{
 		GeneratedAt:   preview.GeneratedAt,
 		SourceReady:   preview.SourceReady,
+		ReplayMode:    firstNonEmptyString(preview.ReplayMode, "launcher"),
 		RootDir:       outDir,
 		StreamBaseURL: streamBaseURL,
 	}
@@ -95,6 +98,9 @@ func SaveCatchupCapsuleLibraryLayout(outDir, streamBaseURL, libraryPrefix string
 		baseName := dirName
 		streamPath := filepath.Join(itemDir, baseName+".strm")
 		streamURL := streamBaseURL + "/stream/" + capsule.ChannelID
+		if strings.TrimSpace(capsule.ReplayURL) != "" {
+			streamURL = strings.TrimSpace(capsule.ReplayURL)
+		}
 		if err := os.WriteFile(streamPath, []byte(streamURL+"\n"), 0o600); err != nil {
 			return CatchupPublishManifest{}, fmt.Errorf("write strm %s: %w", streamPath, err)
 		}
@@ -108,6 +114,7 @@ func SaveCatchupCapsuleLibraryLayout(outDir, streamBaseURL, libraryPrefix string
 			Title:       capsule.Title,
 			ChannelName: capsule.ChannelName,
 			State:       capsule.State,
+			ReplayMode:  firstNonEmptyString(capsule.ReplayMode, "launcher"),
 			Start:       capsule.Start,
 			Stop:        capsule.Stop,
 			Directory:   itemDir,

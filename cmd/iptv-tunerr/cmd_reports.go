@@ -51,6 +51,7 @@ func reportCommands() []commandSpec {
 	catchupCapsulesOut := catchupCapsulesCmd.String("out", "", "Optional JSON output path (default: stdout)")
 	catchupCapsulesLayoutDir := catchupCapsulesCmd.String("layout-dir", "", "Optional output directory for lane-split capsule JSON files plus manifest.json")
 	catchupCapsulesGuidePolicy := catchupCapsulesCmd.String("guide-policy", strings.TrimSpace(os.Getenv("IPTV_TUNERR_CATCHUP_GUIDE_POLICY")), "Optional guide-quality policy: off|healthy|strict")
+	catchupCapsulesReplayTemplate := catchupCapsulesCmd.String("replay-url-template", strings.TrimSpace(os.Getenv("IPTV_TUNERR_CATCHUP_REPLAY_URL_TEMPLATE")), "Optional source-backed replay URL template; when set, capsules include replay URLs instead of launcher-only metadata")
 
 	return []commandSpec{
 		{Name: "channel-report", Section: "Guide/EPG", Summary: "Channel intelligence report: score stream resilience + guide confidence", FlagSet: channelReportCmd, Run: func(cfg *config.Config, args []string) {
@@ -71,7 +72,7 @@ func reportCommands() []commandSpec {
 		}},
 		{Name: "catchup-capsules", Section: "Guide/EPG", Summary: "Export near-live capsule candidates from guide XML/guide.xml", FlagSet: catchupCapsulesCmd, Run: func(cfg *config.Config, args []string) {
 			_ = catchupCapsulesCmd.Parse(args)
-			handleCatchupCapsules(cfg, *catchupCapsulesCatalog, *catchupCapsulesXMLTV, *catchupCapsulesHorizon, *catchupCapsulesLimit, *catchupCapsulesOut, *catchupCapsulesLayoutDir, *catchupCapsulesGuidePolicy)
+			handleCatchupCapsules(cfg, *catchupCapsulesCatalog, *catchupCapsulesXMLTV, *catchupCapsulesHorizon, *catchupCapsulesLimit, *catchupCapsulesOut, *catchupCapsulesLayoutDir, *catchupCapsulesGuidePolicy, *catchupCapsulesReplayTemplate)
 		}},
 	}
 }
@@ -146,7 +147,7 @@ func handleGhostHunter(pmsURL, token string, observe, poll time.Duration, stop b
 	fmt.Println(string(data))
 }
 
-func handleCatchupCapsules(cfg *config.Config, catalogPath, xmltvRef string, horizon time.Duration, limit int, outPath, layoutDir, guidePolicy string) {
+func handleCatchupCapsules(cfg *config.Config, catalogPath, xmltvRef string, horizon time.Duration, limit int, outPath, layoutDir, guidePolicy, replayTemplate string) {
 	path := strings.TrimSpace(catalogPath)
 	if path == "" {
 		path = cfg.CatalogPath
@@ -160,6 +161,7 @@ func handleCatchupCapsules(cfg *config.Config, catalogPath, xmltvRef string, hor
 		log.Printf("Build catchup capsule preview failed: %v", err)
 		os.Exit(1)
 	}
+	rep = tuner.ApplyCatchupReplayTemplate(rep, replayTemplate)
 	out, _ := json.MarshalIndent(rep, "", "  ")
 	if dir := strings.TrimSpace(layoutDir); dir != "" {
 		written, err := tuner.SaveCatchupCapsuleLanes(dir, rep)

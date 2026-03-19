@@ -82,6 +82,13 @@ For each story:
 | PR-C | `INT-006` (gateway decomposition) |
 | PR-D | `INT-007` (explicit replay-mode boundary and any source-backed true replay work) |
 
+### Progress notes (2026-03-18)
+
+- `INT-007` now has a shipped first slice:
+  - catch-up capsules/publishing accept `IPTV_TUNERR_CATCHUP_REPLAY_URL_TEMPLATE`
+  - replay mode is explicit in preview/publish outputs
+  - without a replay template, the system stays in launcher mode instead of pretending live URLs are historical recordings
+
 ### Decision points (needs user input)
 
 - Decision (resolved 2026-02-24): Initial tier-1 client matrix = **LG webOS (Plex app)**, **Plex Web (Firefox + Chrome)**, **iPhone iOS (Plex app)**, **NVIDIA Shield TV (Plex app; covers major Google/Android TV behavior)**. Matrix remains extensible for Apple TV / Roku later.

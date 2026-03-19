@@ -6,8 +6,10 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -339,6 +341,7 @@ type CatchupCapsule struct {
 	CapsuleID    string   `json:"capsule_id"`
 	DNAID        string   `json:"dna_id,omitempty"`
 	ChannelID    string   `json:"channel_id"`
+	GuideNumber  string   `json:"guide_number,omitempty"`
 	ChannelName  string   `json:"channel_name"`
 	Title        string   `json:"title"`
 	SubTitle     string   `json:"sub_title,omitempty"`
@@ -351,11 +354,14 @@ type CatchupCapsule struct {
 	PublishAt    string   `json:"publish_at"`
 	ExpiresAt    string   `json:"expires_at"`
 	DurationMins int      `json:"duration_mins"`
+	ReplayMode   string   `json:"replay_mode,omitempty"`
+	ReplayURL    string   `json:"replay_url,omitempty"`
 }
 
 type CatchupCapsulePreview struct {
 	GeneratedAt string           `json:"generated_at"`
 	SourceReady bool             `json:"source_ready"`
+	ReplayMode  string           `json:"replay_mode,omitempty"`
 	Capsules    []CatchupCapsule `json:"capsules"`
 }
 
@@ -562,6 +568,7 @@ func BuildCatchupCapsulePreview(channels []catalog.LiveChannel, data []byte, now
 			CapsuleID:    catchupCapsuleID(ch, channelID, title, start),
 			DNAID:        strings.TrimSpace(ch.DNAID),
 			ChannelID:    channelID,
+			GuideNumber:  strings.TrimSpace(ch.GuideNumber),
 			ChannelName:  firstNonEmptyString(channelNames[channelID], strings.TrimSpace(ch.GuideName)),
 			Title:        title,
 			SubTitle:     strings.TrimSpace(p.SubTitle.Value),
@@ -574,6 +581,7 @@ func BuildCatchupCapsulePreview(channels []catalog.LiveChannel, data []byte, now
 			PublishAt:    publishAt.UTC().Format(time.RFC3339),
 			ExpiresAt:    stop.Add(catchupRetentionForProgramme(title, p.Categories)).UTC().Format(time.RFC3339),
 			DurationMins: int(stop.Sub(start).Minutes()),
+			ReplayMode:   "launcher",
 		}
 		capsules = append(capsules, capsule)
 	}
@@ -588,6 +596,53 @@ func BuildCatchupCapsulePreview(channels []catalog.LiveChannel, data []byte, now
 	}
 	out.Capsules = capsules
 	return out, nil
+}
+
+func ApplyCatchupReplayTemplate(preview CatchupCapsulePreview, tmpl string) CatchupCapsulePreview {
+	tmpl = strings.TrimSpace(tmpl)
+	if tmpl == "" {
+		preview.ReplayMode = "launcher"
+		for i := range preview.Capsules {
+			preview.Capsules[i].ReplayMode = "launcher"
+			preview.Capsules[i].ReplayURL = ""
+		}
+		return preview
+	}
+	preview.ReplayMode = "replay"
+	for i := range preview.Capsules {
+		preview.Capsules[i].ReplayMode = "replay"
+		preview.Capsules[i].ReplayURL = renderCatchupReplayURL(preview.Capsules[i], tmpl)
+	}
+	return preview
+}
+
+func renderCatchupReplayURL(c CatchupCapsule, tmpl string) string {
+	start, _ := time.Parse(time.RFC3339, c.Start)
+	stop, _ := time.Parse(time.RFC3339, c.Stop)
+	repl := strings.NewReplacer(
+		"{capsule_id}", c.CapsuleID,
+		"{dna_id}", c.DNAID,
+		"{channel_id}", c.ChannelID,
+		"{guide_number}", c.GuideNumber,
+		"{channel_name}", c.ChannelName,
+		"{channel_name_query}", urlQueryEscape(c.ChannelName),
+		"{title}", c.Title,
+		"{title_query}", urlQueryEscape(c.Title),
+		"{start_rfc3339}", c.Start,
+		"{stop_rfc3339}", c.Stop,
+		"{start_unix}", strconv.FormatInt(start.Unix(), 10),
+		"{stop_unix}", strconv.FormatInt(stop.Unix(), 10),
+		"{duration_mins}", strconv.Itoa(c.DurationMins),
+		"{start_ymd}", start.UTC().Format("2006-01-02"),
+		"{start_hm}", start.UTC().Format("15-04"),
+		"{start_xtream}", start.UTC().Format("2006-01-02:15-04"),
+		"{stop_xtream}", stop.UTC().Format("2006-01-02:15-04"),
+	)
+	return strings.TrimSpace(repl.Replace(tmpl))
+}
+
+func urlQueryEscape(v string) string {
+	return url.QueryEscape(strings.TrimSpace(v))
 }
 
 func firstNonEmptyString(v ...string) string {

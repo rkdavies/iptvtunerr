@@ -981,6 +981,10 @@ func (s *Server) serveCatchupCapsules() http.Handler {
 		if policy == "" {
 			policy = strings.TrimSpace(os.Getenv("IPTV_TUNERR_CATCHUP_GUIDE_POLICY"))
 		}
+		replayTemplate := strings.TrimSpace(r.URL.Query().Get("replay_template"))
+		if replayTemplate == "" {
+			replayTemplate = strings.TrimSpace(os.Getenv("IPTV_TUNERR_CATCHUP_REPLAY_URL_TEMPLATE"))
+		}
 		rep, err := s.xmltv.CatchupCapsulePreview(time.Now(), horizon, limit)
 		if err != nil {
 			http.Error(w, `{"error":"catchup capsule preview failed"}`, http.StatusBadGateway)
@@ -991,6 +995,7 @@ func (s *Server) serveCatchupCapsules() http.Handler {
 				rep = FilterCatchupCapsulesByGuidePolicy(rep, gh, policy)
 			}
 		}
+		rep = ApplyCatchupReplayTemplate(rep, replayTemplate)
 		body, err := json.MarshalIndent(rep, "", "  ")
 		if err != nil {
 			http.Error(w, `{"error":"encode catchup capsules"}`, http.StatusInternalServerError)

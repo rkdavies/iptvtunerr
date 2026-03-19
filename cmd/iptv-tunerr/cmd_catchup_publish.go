@@ -21,6 +21,7 @@ func catchupOpsCommands() []commandSpec {
 	catchupPublishLimit := catchupPublishCmd.Int("limit", 20, "Max capsules to publish")
 	catchupPublishOutDir := catchupPublishCmd.String("out-dir", "", "Output directory for published catch-up libraries (required)")
 	catchupPublishStreamBaseURL := catchupPublishCmd.String("stream-base-url", "", "Base URL used inside generated .strm files (default: IPTV_TUNERR_BASE_URL)")
+	catchupPublishReplayTemplate := catchupPublishCmd.String("replay-url-template", strings.TrimSpace(os.Getenv("IPTV_TUNERR_CATCHUP_REPLAY_URL_TEMPLATE")), "Optional source-backed replay URL template; when set, published .strm files target replay URLs instead of live launcher URLs")
 	catchupPublishLibraryPrefix := catchupPublishCmd.String("library-prefix", "Catchup", "Prefix for generated library names (e.g. 'Catchup')")
 	catchupPublishGuidePolicy := catchupPublishCmd.String("guide-policy", strings.TrimSpace(os.Getenv("IPTV_TUNERR_CATCHUP_GUIDE_POLICY")), "Optional guide-quality policy: off|healthy|strict")
 	catchupPublishManifestOut := catchupPublishCmd.String("manifest-out", "", "Optional JSON output path for the publish manifest (default: stdout)")
@@ -38,12 +39,12 @@ func catchupOpsCommands() []commandSpec {
 	return []commandSpec{
 		{Name: "catchup-publish", Section: "Guide/EPG", Summary: "Publish near-live capsules as .strm + .nfo libraries for Plex/Emby/Jellyfin", FlagSet: catchupPublishCmd, Run: func(cfg *config.Config, args []string) {
 			_ = catchupPublishCmd.Parse(args)
-			handleCatchupPublish(cfg, *catchupPublishCatalog, *catchupPublishXMLTV, *catchupPublishHorizon, *catchupPublishLimit, *catchupPublishOutDir, *catchupPublishStreamBaseURL, *catchupPublishLibraryPrefix, *catchupPublishGuidePolicy, *catchupPublishRegisterPlex, *catchupPublishPlexURL, *catchupPublishPlexToken, *catchupPublishRegisterEmby, *catchupPublishEmbyHost, *catchupPublishEmbyToken, *catchupPublishRegisterJellyfin, *catchupPublishJellyfinHost, *catchupPublishJellyfinToken, *catchupPublishRefresh, *catchupPublishManifestOut)
+			handleCatchupPublish(cfg, *catchupPublishCatalog, *catchupPublishXMLTV, *catchupPublishHorizon, *catchupPublishLimit, *catchupPublishOutDir, *catchupPublishStreamBaseURL, *catchupPublishReplayTemplate, *catchupPublishLibraryPrefix, *catchupPublishGuidePolicy, *catchupPublishRegisterPlex, *catchupPublishPlexURL, *catchupPublishPlexToken, *catchupPublishRegisterEmby, *catchupPublishEmbyHost, *catchupPublishEmbyToken, *catchupPublishRegisterJellyfin, *catchupPublishJellyfinHost, *catchupPublishJellyfinToken, *catchupPublishRefresh, *catchupPublishManifestOut)
 		}},
 	}
 }
 
-func handleCatchupPublish(cfg *config.Config, catalogPath, xmltvRef string, horizon time.Duration, limit int, outDir, streamBaseURL, libraryPrefix, guidePolicy string, registerPlex bool, plexURL, plexToken string, registerEmby bool, embyHost, embyToken string, registerJellyfin bool, jellyfinHost, jellyfinToken string, refresh bool, manifestOut string) {
+func handleCatchupPublish(cfg *config.Config, catalogPath, xmltvRef string, horizon time.Duration, limit int, outDir, streamBaseURL, replayTemplate, libraryPrefix, guidePolicy string, registerPlex bool, plexURL, plexToken string, registerEmby bool, embyHost, embyToken string, registerJellyfin bool, jellyfinHost, jellyfinToken string, refresh bool, manifestOut string) {
 	path := strings.TrimSpace(catalogPath)
 	if path == "" {
 		path = cfg.CatalogPath
@@ -68,6 +69,7 @@ func handleCatchupPublish(cfg *config.Config, catalogPath, xmltvRef string, hori
 		log.Printf("Build catchup capsule preview failed: %v", err)
 		os.Exit(1)
 	}
+	rep = tuner.ApplyCatchupReplayTemplate(rep, replayTemplate)
 	manifest, err := tuner.SaveCatchupCapsuleLibraryLayout(outDir, streamBaseURL, libraryPrefix, rep)
 	if err != nil {
 		log.Printf("Publish catchup capsules failed: %v", err)

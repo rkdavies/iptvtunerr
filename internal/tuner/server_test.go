@@ -494,6 +494,45 @@ func TestServer_catchupCapsulesGuidePolicy(t *testing.T) {
 	}
 }
 
+func TestServer_catchupCapsulesReplayTemplate(t *testing.T) {
+	now := time.Now().UTC()
+	start := now.Add(15 * time.Minute).Format("20060102150405 +0000")
+	stop := now.Add(75 * time.Minute).Format("20060102150405 +0000")
+	s := &Server{
+		xmltv: &XMLTV{
+			Channels: []catalog.LiveChannel{
+				{ChannelID: "1001", GuideNumber: "101", GuideName: "FOX News", DNAID: "dna-fox"},
+			},
+			cachedXML: []byte(`<?xml version="1.0" encoding="UTF-8"?>
+<tv>
+  <channel id="101"><display-name>FOX News</display-name></channel>
+  <programme start="` + start + `" stop="` + stop + `" channel="101">
+    <title>Morning News</title>
+  </programme>
+</tv>`),
+		},
+	}
+	req := httptest.NewRequest(http.MethodGet, "/guide/capsules.json?replay_template=http://provider.example/timeshift/{channel_id}/{duration_mins}/{start_xtream}", nil)
+	w := httptest.NewRecorder()
+	s.serveCatchupCapsules().ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status=%d want 200", w.Code)
+	}
+	var body CatchupCapsulePreview
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if body.ReplayMode != "replay" {
+		t.Fatalf("replay_mode=%q want replay", body.ReplayMode)
+	}
+	if len(body.Capsules) != 1 {
+		t.Fatalf("capsules len=%d want 1", len(body.Capsules))
+	}
+	if body.Capsules[0].ReplayURL == "" {
+		t.Fatal("expected replay_url")
+	}
+}
+
 func TestUpdateChannels_capsLineup(t *testing.T) {
 	// Plex DVR fails to save lineup when channel count exceeds ~480. UpdateChannels must cap.
 	live := make([]catalog.LiveChannel, 500)

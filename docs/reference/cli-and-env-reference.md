@@ -390,6 +390,7 @@ Common flags:
 - `-out`
 - `-layout-dir` — optional lane-split output directory; writes `<lane>.json` files plus `manifest.json`
 - `-guide-policy` — optional `off|healthy|strict`; filters capsules using real guide-health before export
+- `-replay-url-template` — optional source-backed replay URL template; when set, capsules include rendered replay URLs and `replay_mode=replay`
 
 ## `iptv-tunerr catchup-publish`
 
@@ -402,6 +403,7 @@ Common flags:
 - `-limit`
 - `-out-dir` — required; root output directory
 - `-stream-base-url` — required unless `IPTV_TUNERR_BASE_URL` is set; used inside generated `.strm` files
+- `-replay-url-template` — optional source-backed replay URL template; when set, `.strm` files point at rendered replay URLs instead of `/stream/<channel>`
 - `-library-prefix` — default `Catchup`
 - `-guide-policy` — optional `off|healthy|strict`; filters capsules using real guide-health before publish
 - `-manifest-out`
@@ -424,9 +426,23 @@ Registration behavior:
 - Emby/Jellyfin: creates/reuses one movie library per lane via `/Library/VirtualFolders`, then triggers a library refresh scan when `-refresh=true`
 
 Operational note:
-- published items are near-live launchers, not recordings
-- each `.strm` points back to `IPTV_TUNERR_BASE_URL/stream/<channel>`
+- without a replay template, published items are near-live launchers and each `.strm` points back to `IPTV_TUNERR_BASE_URL/stream/<channel>`
+- with a replay template, published items become source-backed replay launchers for the programme window
 - rerun the publisher on a schedule to keep the lane libraries current
+
+Replay template variables:
+- `{capsule_id}`
+- `{dna_id}`
+- `{channel_id}`
+- `{guide_number}`
+- `{channel_name}` / `{channel_name_query}`
+- `{title}` / `{title_query}`
+- `{start_rfc3339}` / `{stop_rfc3339}`
+- `{start_unix}` / `{stop_unix}`
+- `{duration_mins}`
+- `{start_ymd}`
+- `{start_hm}`
+- `{start_xtream}` / `{stop_xtream}` (`YYYY-MM-DD:HH-MM`)
 
 ## `iptv-tunerr probe`
 
@@ -617,6 +633,7 @@ Fetches EPG directly from your IPTV provider using existing credentials. No sepa
 - `IPTV_TUNERR_XMLTV_URL` — external XMLTV source URL; fetched, filtered to your channels, remapped to guide numbers
 - `IPTV_TUNERR_XMLTV_ALIASES` — optional file path or `http(s)` URL for alias overrides used in deterministic EPG repair
 - `IPTV_TUNERR_CATCHUP_GUIDE_POLICY` — optional `off|healthy|strict`; applies guide-quality filtering to `/guide/capsules.json`, `catchup-capsules`, and `catchup-publish`
+- `IPTV_TUNERR_CATCHUP_REPLAY_URL_TEMPLATE` — optional source-backed replay URL template for capsules/publishing; when set, replay URLs are rendered with programme and channel tokens instead of falling back to live-channel launchers
 - `IPTV_TUNERR_XMLTV_MATCH_ENABLE` — repair/assign channel `TVGID`s from provider/external XMLTV channel metadata during catalog build (default `true`)
 - `IPTV_TUNERR_XMLTV_TIMEOUT` — fetch timeout (default `45s`)
 - `IPTV_TUNERR_XMLTV_CACHE_TTL` — refresh interval when provider EPG cache TTL is not set (default `10m`)

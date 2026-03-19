@@ -23,6 +23,22 @@ Append-only. One entry per completed task.
 ## Entries
 
 - Date: 2026-03-18
+  Title: Add source-backed catch-up replay mode
+  Summary:
+    - Added replay-aware capsule previews and publishing so `catchup-capsules`, `/guide/capsules.json`, and `catchup-publish` can render real programme-window replay URLs when `IPTV_TUNERR_CATCHUP_REPLAY_URL_TEMPLATE` is configured.
+    - Kept the boundary honest: without a replay template, capsules and published libraries remain launcher-mode and point back at the live stream path.
+    - Updated README, features, reference docs, changelog, env example, and current-task tracking for the new replay-mode behavior and template tokens.
+  Verification:
+    - `go test ./internal/tuner ./cmd/iptv-tunerr`
+    - `./scripts/verify`
+  Notes:
+    - The replay implementation is provider-agnostic on purpose; the app does not guess a provider timeshift URL shape and only enters replay mode when the operator supplies a source-backed template.
+  Opportunities filed:
+    - none
+  Links:
+    - internal/tuner/xmltv.go, internal/tuner/catchup_publish.go, internal/tuner/catchup_replay_test.go, cmd/iptv-tunerr/cmd_reports.go, cmd/iptv-tunerr/cmd_catchup_publish.go
+
+- Date: 2026-03-18
   Title: Ship the remaining product-facing intelligence surfaces
   Summary:
     - Added `epg-doctor -write-aliases` plus `/guide/aliases.json` so healthy normalized-name repairs can be exported as reviewable `name_to_xmltv_id` overrides.

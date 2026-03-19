@@ -20,6 +20,7 @@ All notable changes to IPTV Tunerr are documented here. Repo: [github.com/snapet
 - **Channel leaderboard**: added `channel-leaderboard` plus `/channels/leaderboard.json` for hall-of-fame, hall-of-shame, guide-risk, and stream-risk snapshots of the lineup.
 - **Guide-quality policy hooks**: added shared guide-health caching plus `IPTV_TUNERR_GUIDE_POLICY` / `IPTV_TUNERR_CATCHUP_GUIDE_POLICY` so runtime lineup shaping and catch-up capsule output can optionally suppress placeholder-only or no-programme channels.
 - **Registration recipes**: added `IPTV_TUNERR_REGISTER_RECIPE` / `run -register-recipe` so Plex, Emby, and Jellyfin registration can now reuse channel-intelligence scoring instead of blindly syncing catalog order.
+- **Source-backed catch-up replay mode**: `catchup-capsules`, `/guide/capsules.json`, and `catchup-publish` now support `IPTV_TUNERR_CATCHUP_REPLAY_URL_TEMPLATE`, which renders programme-window replay URLs when a real replay-capable source exists instead of pretending the live launcher is a recording.
 - **Shared ref loader**: report and guide tooling now use one shared local-file/URL loader with the repo HTTP client defaults instead of duplicated `http.DefaultClient` code paths.
 
 ### Ingest / probe
